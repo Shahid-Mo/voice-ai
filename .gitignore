@@ -1,0 +1,15 @@
+# Python runtime files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment (Critical: uv stores the environment here)
+.venv/
+
+# Environment variables (Safety: never commit secrets)
+.env
+
+# Build and distribution
+build/
+dist/
+*.egg-info/
