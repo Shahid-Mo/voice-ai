@@ -1,0 +1,250 @@
+[
+  {
+    "id": "global_071",
+    "tenant_id": null,
+    "content": "If you prefer minimal staff interaction, you may request a low contact stay, which limits housekeeping knock attempts and front desk outreach. This option is useful for guests who value privacy or rest during daylight hours.",
+    "category": "policy",
+    "metadata": { "type": "low_contact_stay" }
+  },
+  {
+    "id": "global_072",
+    "tenant_id": null,
+    "content": "Guests may opt out of daily housekeeping and receive fresh towels and amenities on request instead. This option supports both privacy and sustainability initiatives across all locations.",
+    "category": "policy",
+    "metadata": { "type": "housekeeping_opt_out" }
+  },
+  {
+    "id": "global_073",
+    "tenant_id": null,
+    "content": "If you are sensitive to mirrors, you may request mirror covers or reduced reflective surfaces in your room. Availability varies by room type, but staff will do their best to accommodate.",
+    "category": "amenities",
+    "metadata": { "type": "mirror_sensitivity" }
+  },
+  {
+    "id": "global_074",
+    "tenant_id": null,
+    "content": "All locations offer complimentary filtered water refill stations on each guest floor. Guests who prefer bottled options may request glass bottled water delivery to their room.",
+    "category": "amenities",
+    "metadata": { "type": "water_service" }
+  },
+  {
+    "id": "global_075",
+    "tenant_id": null,
+    "content": "If you are traveling with fragile artifacts or heirlooms, the front desk can arrange temporary secure storage. Items are logged, sealed, and accessible only with guest verification.",
+    "category": "safety",
+    "metadata": { "type": "artifact_storage" }
+  },
+  {
+    "id": "global_076",
+    "tenant_id": null,
+    "content": "Guests participating in overnight events may request delayed quiet hour enforcement on designated event floors only. All other floors continue to observe standard quiet hours.",
+    "category": "policy",
+    "metadata": { "type": "event_floor_policy" }
+  },
+  {
+    "id": "global_077",
+    "tenant_id": null,
+    "content": "If you are traveling across time zones, the concierge can help plan gradual schedule shifts to avoid daylight exposure fatigue. This service is complimentary and tailored to your itinerary.",
+    "category": "amenities",
+    "metadata": { "type": "jet_lag_support" }
+  },
+  {
+    "id": "global_078",
+    "tenant_id": null,
+    "content": "Rooms are inspected after checkout for damage beyond normal wear. If damage is found, charges may apply, and the guest will be contacted with photo documentation.",
+    "category": "policy",
+    "metadata": { "type": "damage_assessment" }
+  },
+  {
+    "id": "global_079",
+    "tenant_id": null,
+    "content": "If you need a temporary room extension due to travel delays, the front desk can quote an hourly or half day rate when availability allows. Extensions are not guaranteed during high occupancy.",
+    "category": "policy",
+    "metadata": { "type": "room_extension" }
+  },
+  {
+    "id": "global_080",
+    "tenant_id": null,
+    "content": "For guests with hearing sensitivity, visual alerts can replace audible alarms in guestrooms. This includes light based wake up calls and emergency notifications.",
+    "category": "safety",
+    "metadata": { "type": "hearing_accessibility" }
+  },
+  {
+    "id": "global_081",
+    "tenant_id": null,
+    "content": "If you are celebrating an anniversary or centuries long partnership, mention it at booking and we can note the occasion. Small acknowledgments may be arranged based on availability.",
+    "category": "amenities",
+    "metadata": { "type": "anniversary_support" }
+  },
+  {
+    "id": "global_082",
+    "tenant_id": null,
+    "content": "Guests may request scent free rooms, where cleaning products and amenities are selected to minimize fragrance. This is recommended for guests with scent sensitivity.",
+    "category": "amenities",
+    "metadata": { "type": "scent_free_room" }
+  },
+  {
+    "id": "global_083",
+    "tenant_id": null,
+    "content": "If a guest fails to check out by the confirmed time without approval, a late departure fee may apply. The front desk will attempt contact before applying any charges.",
+    "category": "policy",
+    "metadata": { "type": "overstay_policy" }
+  },
+  {
+    "id": "global_084",
+    "tenant_id": null,
+    "content": "All properties maintain 24 hour security monitoring in public spaces. Guestroom corridors are accessible only by key card for added safety.",
+    "category": "safety",
+    "metadata": { "type": "security_monitoring" }
+  },
+  {
+    "id": "global_085",
+    "tenant_id": null,
+    "content": "If you prefer not to be disturbed at all, you may activate extended privacy mode, which suppresses non essential staff visits. Emergency access is still retained for safety reasons.",
+    "category": "policy",
+    "metadata": { "type": "privacy_mode" }
+  },
+  {
+    "id": "global_086",
+    "tenant_id": null,
+    "content": "For guests arriving by motorcycle, broomstick, or non standard transport, storage options may be available depending on location. Call ahead for guidance before arrival.",
+    "category": "policy",
+    "metadata": { "type": "nonstandard_transport" }
+  },
+  {
+    "id": "global_087",
+    "tenant_id": null,
+    "content": "If you require a translator or interpreter, the concierge can arrange language support services with advance notice. Availability depends on language and time of day.",
+    "category": "amenities",
+    "metadata": { "type": "language_support" }
+  },
+  {
+    "id": "global_088",
+    "tenant_id": null,
+    "content": "Rooms with fireplaces or heat stones are limited and must be requested in advance. These features are monitored for safety and may not be available for all pet types.",
+    "category": "safety",
+    "metadata": { "type": "fire_features" }
+  },
+  {
+    "id": "global_089",
+    "tenant_id": null,
+    "content": "If you need to print boarding passes or travel documents, printing is available at the business center. Small print jobs are typically complimentary.",
+    "category": "amenities",
+    "metadata": { "type": "printing_services" }
+  },
+  {
+    "id": "global_090",
+    "tenant_id": null,
+    "content": "Guests who violate safety or conduct policies may be asked to relocate rooms or leave the property without refund. These situations are handled discreetly whenever possible.",
+    "category": "policy",
+    "metadata": { "type": "conduct_policy" }
+  },
+
+  {
+    "id": "sf_031",
+    "tenant_id": "sf",
+    "content": "San Francisco offers early morning coffee and tea service starting at 5:30 AM for guests departing on sunrise flights. Beverages are served in low light areas for comfort.",
+    "category": "dining",
+    "metadata": { "type": "early_departure_service" }
+  },
+  {
+    "id": "sf_032",
+    "tenant_id": "sf",
+    "content": "If you plan to explore Fisherman’s Wharf, ask the concierge about walking routes that avoid steep hills. This is especially helpful for guests with mobility considerations.",
+    "category": "about",
+    "metadata": { "type": "mobility_tip" }
+  },
+  {
+    "id": "sf_033",
+    "tenant_id": "sf",
+    "content": "San Francisco tech travelers often request additional power outlets and monitor connections. These items can be delivered to your room when available.",
+    "category": "amenities",
+    "metadata": { "type": "tech_equipment" }
+  },
+  {
+    "id": "sf_034",
+    "tenant_id": "sf",
+    "content": "During major city events, downtown traffic may impact airport transfers. The concierge can help adjust pickup times to reduce stress on departure day.",
+    "category": "about",
+    "metadata": { "type": "event_traffic_tip" }
+  },
+  {
+    "id": "sf_035",
+    "tenant_id": "sf",
+    "content": "If fog conditions become heavy, some Golden Gate views may be partially obscured. The front desk can suggest alternate scenic viewpoints within the city.",
+    "category": "about",
+    "metadata": { "type": "weather_visibility" }
+  },
+
+  {
+    "id": "ny_031",
+    "tenant_id": "ny",
+    "content": "New York guests who prefer minimal street exposure can request indoor navigation guidance between nearby attractions. This is helpful during extreme weather or heavy crowds.",
+    "category": "about",
+    "metadata": { "type": "indoor_navigation" }
+  },
+  {
+    "id": "ny_032",
+    "tenant_id": "ny",
+    "content": "If you are attending multiple Broadway shows, concierge can help stagger showtimes and dining to avoid fatigue. This service is especially popular with older vampire guests.",
+    "category": "amenities",
+    "metadata": { "type": "itinerary_planning" }
+  },
+  {
+    "id": "ny_033",
+    "tenant_id": "ny",
+    "content": "New York winters can bring sudden temperature drops, so request extra blankets or a warmer room setting if needed. Our HVAC team can adjust settings within safe ranges.",
+    "category": "amenities",
+    "metadata": { "type": "winter_comfort" }
+  },
+  {
+    "id": "ny_034",
+    "tenant_id": "ny",
+    "content": "If you are flying out of JFK early, the front desk can help arrange a pre dawn transfer and breakfast to go. Advance notice helps ensure availability.",
+    "category": "amenities",
+    "metadata": { "type": "early_departure_support" }
+  },
+  {
+    "id": "ny_035",
+    "tenant_id": "ny",
+    "content": "Times Square crowds are densest between 7:00 PM and 10:00 PM. Visiting earlier or later can provide a calmer experience for guests with pets or children.",
+    "category": "about",
+    "metadata": { "type": "crowd_timing" }
+  },
+
+  {
+    "id": "chicago_031",
+    "tenant_id": "chicago",
+    "content": "Chicago offers complimentary snow removal from guest vehicles during winter storms. This service is automatic and does not require a request.",
+    "category": "amenities",
+    "metadata": { "type": "snow_removal" }
+  },
+  {
+    "id": "chicago_032",
+    "tenant_id": "chicago",
+    "content": "If you are visiting during festival season, downtown areas may be busier than usual. The front desk can suggest alternative dining and sightseeing routes.",
+    "category": "about",
+    "metadata": { "type": "festival_tip" }
+  },
+  {
+    "id": "chicago_033",
+    "tenant_id": "chicago",
+    "content": "Wind conditions can vary quickly in Chicago, especially near the lake. Guests with winged pets may want to avoid rooftop access during high wind advisories.",
+    "category": "safety",
+    "metadata": { "type": "wind_safety" }
+  },
+  {
+    "id": "chicago_034",
+    "tenant_id": "chicago",
+    "content": "Chicago’s lobby often hosts casual evening social hours on non event nights. These gatherings are informal and open to all registered guests.",
+    "category": "amenities",
+    "metadata": { "type": "social_hours" }
+  },
+  {
+    "id": "chicago_035",
+    "tenant_id": "chicago",
+    "content": "If you are traveling with children, Millennium Park is one of the most family friendly nearby attractions. Concierge can recommend best visiting times to avoid crowds.",
+    "category": "about",
+    "metadata": { "type": "family_attraction_tip" }
+  }
+]

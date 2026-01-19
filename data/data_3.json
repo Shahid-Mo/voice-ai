@@ -1,0 +1,362 @@
+[
+  {
+    "id": "global_041",
+    "tenant_id": null,
+    "content": "All locations require guests to be at least 18 years old to check in, unless accompanied by a parent or legal guardian. If the reservation is booked by someone else, the adult checking in must present ID and a matching payment method.",
+    "category": "policy",
+    "metadata": { "type": "minimum_checkin_age" }
+  },
+  {
+    "id": "global_042",
+    "tenant_id": null,
+    "content": "We can store luggage before check in and after check out at no charge for same day retrieval. If you need multi day storage, ask the front desk about extended storage availability and fees.",
+    "category": "policy",
+    "metadata": { "type": "luggage_storage_policy" }
+  },
+  {
+    "id": "global_043",
+    "tenant_id": null,
+    "content": "If you arrive before your room is ready, you may use lobby seating, restrooms, and designated quiet corners. Some amenities like the pool and gym may be available early depending on crowd levels.",
+    "category": "amenities",
+    "metadata": { "type": "pre_checkin_access" }
+  },
+  {
+    "id": "global_044",
+    "tenant_id": null,
+    "content": "All rooms include a safe for valuables such as jewelry, spell books, and small ancient relics. The hotel is not responsible for items left unattended outside the in room safe.",
+    "category": "policy",
+    "metadata": { "type": "valuables_policy" }
+  },
+  {
+    "id": "global_045",
+    "tenant_id": null,
+    "content": "If you need a wake up call, we offer both standard phone calls and a gentle bat knock option for guests who prefer quieter notifications. Wake up requests can be scheduled at the front desk or through in room messaging.",
+    "category": "amenities",
+    "metadata": { "type": "wake_up_service" }
+  },
+  {
+    "id": "global_046",
+    "tenant_id": null,
+    "content": "All properties offer contactless check out via text or front desk, with an emailed receipt available on request. If you paid with treasures or coins, a final appraisal statement is included on your folio.",
+    "category": "policy",
+    "metadata": { "type": "checkout_options" }
+  },
+  {
+    "id": "global_047",
+    "tenant_id": null,
+    "content": "Noise complaints are handled discreetly to protect guest privacy. Staff may request the noisy room reduce volume, and repeated issues can lead to relocation or removal from event areas.",
+    "category": "policy",
+    "metadata": { "type": "noise_complaints" }
+  },
+  {
+    "id": "global_048",
+    "tenant_id": null,
+    "content": "If you need a quiet room, you can request placement away from elevators, ice machines, and event spaces. Quiet room placement is based on availability and is easier to guarantee with advance notice.",
+    "category": "policy",
+    "metadata": { "type": "quiet_room_policy" }
+  },
+  {
+    "id": "global_049",
+    "tenant_id": null,
+    "content": "All hotels provide fresh linens and towels, including extra durable options for guests with claws or talons. If your linens are damaged accidentally, notify housekeeping so we can replace them quickly.",
+    "category": "amenities",
+    "metadata": { "type": "linens_towels" }
+  },
+  {
+    "id": "global_050",
+    "tenant_id": null,
+    "content": "For guests with wings, we offer wing friendly chairs in common areas and wider pathway guidance in busy spaces. If you need extra room in your guestroom, ask about wing clearance room setups.",
+    "category": "amenities",
+    "metadata": { "type": "wing_access" }
+  },
+  {
+    "id": "global_051",
+    "tenant_id": null,
+    "content": "If a guest is injured, staff can provide basic first aid and call local emergency services. For non urgent medical needs, we can recommend nearby urgent care options and pharmacies.",
+    "category": "safety",
+    "metadata": { "type": "medical_support" }
+  },
+  {
+    "id": "global_052",
+    "tenant_id": null,
+    "content": "If you are allergic to common human cleaning products, request a hypoallergenic cleaning option. This includes fragrance free soap, low irritant sprays, and reduced aerosol use.",
+    "category": "safety",
+    "metadata": { "type": "hypoallergenic_cleaning" }
+  },
+  {
+    "id": "global_053",
+    "tenant_id": null,
+    "content": "All properties offer a limited supply of baby items like portable cribs, bottle warmers, and high chairs. Request these in advance because availability can be limited during peak weekends.",
+    "category": "amenities",
+    "metadata": { "type": "family_baby_items" }
+  },
+  {
+    "id": "global_054",
+    "tenant_id": null,
+    "content": "If you need two adjoining rooms, request connecting rooms when booking. Connecting rooms are subject to availability and may require booking the same room category on both sides.",
+    "category": "policy",
+    "metadata": { "type": "connecting_rooms" }
+  },
+  {
+    "id": "global_055",
+    "tenant_id": null,
+    "content": "If you forget a charger, toothbrush, or basic travel item, the front desk maintains a limited supply of essentials. Some items are complimentary, while others may be billed to your room.",
+    "category": "amenities",
+    "metadata": { "type": "forgotten_items" }
+  },
+  {
+    "id": "global_056",
+    "tenant_id": null,
+    "content": "For guests working remotely, most rooms include a desk and chair setup, and the business center offers quiet work booths. If you need a larger screen or printing support, ask the front desk for options.",
+    "category": "amenities",
+    "metadata": { "type": "remote_work" }
+  },
+  {
+    "id": "global_057",
+    "tenant_id": null,
+    "content": "All hotels have a safety policy against bringing silver weapons, open flames, or unregistered potions into common areas. If you are traveling with special items for cultural reasons, notify the front desk for safe storage options.",
+    "category": "safety",
+    "metadata": { "type": "restricted_items" }
+  },
+  {
+    "id": "global_058",
+    "tenant_id": null,
+    "content": "If you plan to arrive after midnight, please call ahead so we can hold your reservation and prepare for a quick check in. Late arrival notes help us reduce wait time at the desk.",
+    "category": "policy",
+    "metadata": { "type": "late_arrival" }
+  },
+  {
+    "id": "global_059",
+    "tenant_id": null,
+    "content": "All locations can arrange airport transfers through trusted partners. Prices vary by city and time of day, and the concierge can provide an exact quote before booking.",
+    "category": "amenities",
+    "metadata": { "type": "airport_transfer" }
+  },
+  {
+    "id": "global_060",
+    "tenant_id": null,
+    "content": "If you are traveling for a wedding or event, you can request a room block rate when booking multiple rooms. Room blocks typically require advance notice and a minimum number of rooms.",
+    "category": "policy",
+    "metadata": { "type": "group_blocks" }
+  },
+  {
+    "id": "global_061",
+    "tenant_id": null,
+    "content": "Our event menus can accommodate garlic free, gluten free, and vegetarian preferences, including synthetic blood beverage options. Final menu selections are typically confirmed at least 7 days before the event date.",
+    "category": "dining",
+    "metadata": { "type": "event_catering" }
+  },
+  {
+    "id": "global_062",
+    "tenant_id": null,
+    "content": "If you need a private ritual or quiet reflection space, ask the front desk about reserving a small room during off peak hours. We aim to support cultural practices as long as they remain safe and respectful.",
+    "category": "policy",
+    "metadata": { "type": "private_space_requests" }
+  },
+  {
+    "id": "global_063",
+    "tenant_id": null,
+    "content": "For guests concerned about privacy, we can disable name display on public room delivery labels and use a discreet code instead. Please request this at check in for all deliveries and room service.",
+    "category": "policy",
+    "metadata": { "type": "privacy_discreet_labels" }
+  },
+  {
+    "id": "global_064",
+    "tenant_id": null,
+    "content": "If you receive packages, the front desk can accept them for registered guests, but large shipments may require advance approval. Perishable items should be labeled clearly and retrieved promptly.",
+    "category": "policy",
+    "metadata": { "type": "package_handling" }
+  },
+  {
+    "id": "global_065",
+    "tenant_id": null,
+    "content": "All locations maintain a garlic free baseline in kitchens, but we still recommend guests communicate allergies clearly. Cross contact cannot be fully eliminated, especially in shared prep areas.",
+    "category": "safety",
+    "metadata": { "type": "allergy_notice" }
+  },
+  {
+    "id": "global_066",
+    "tenant_id": null,
+    "content": "If your room temperature feels off, we can adjust HVAC settings or provide a portable unit depending on the property. Cold blooded guests may request warmer ranges, while ice creatures may request cooler ranges.",
+    "category": "amenities",
+    "metadata": { "type": "temperature_control" }
+  },
+  {
+    "id": "global_067",
+    "tenant_id": null,
+    "content": "If you are traveling with a service animal, it is always welcome and does not count against pet limits. Emotional support animals follow local laws and may require documentation depending on the city.",
+    "category": "policy",
+    "metadata": { "type": "service_animals" }
+  },
+  {
+    "id": "global_068",
+    "tenant_id": null,
+    "content": "Guests may request feather free pillows, extra firm coffins, or softer crypt bedding depending on preference. Bedding choices are subject to availability but we try to honor requests whenever possible.",
+    "category": "amenities",
+    "metadata": { "type": "bedding_options" }
+  },
+  {
+    "id": "global_069",
+    "tenant_id": null,
+    "content": "If you are planning a proposal, the concierge can help coordinate timing, room setup, and a discreet photographer. We recommend scheduling at least 48 hours in advance for smooth coordination.",
+    "category": "amenities",
+    "metadata": { "type": "proposal_support" }
+  },
+  {
+    "id": "global_070",
+    "tenant_id": null,
+    "content": "If you misplace your key card, replacement cards are available at the front desk after verifying your ID. For privacy, we will not issue a replacement to anyone not listed on the room.",
+    "category": "safety",
+    "metadata": { "type": "keycard_replacement" }
+  },
+
+  {
+    "id": "sf_024",
+    "tenant_id": "sf",
+    "content": "San Francisco valet is accessed via the side entrance near the underground garage ramp. If you are arriving during downtown events, expect short delays and consider calling ahead for smoother handoff.",
+    "category": "about",
+    "metadata": { "type": "parking_instructions" }
+  },
+  {
+    "id": "sf_025",
+    "tenant_id": "sf",
+    "content": "If you are visiting Alcatraz ghost tours, the concierge can recommend evening departure times and suggest the best jacket layers for cold bay winds. Fog can roll in quickly, so plan for a chilly return trip.",
+    "category": "about",
+    "metadata": { "type": "attraction_tip" }
+  },
+  {
+    "id": "sf_026",
+    "tenant_id": "sf",
+    "content": "During Friday Monster Ball nights, the lobby is busiest between 8:30 PM and 9:30 PM. If you prefer a quieter arrival, consider checking in earlier in the afternoon.",
+    "category": "policy",
+    "metadata": { "type": "peak_times" }
+  },
+  {
+    "id": "sf_027",
+    "tenant_id": "sf",
+    "content": "Golden Gate view rooms are most requested in San Francisco, especially on higher floors. If the view is important to you, mention Golden Gate in your reservation notes for better placement.",
+    "category": "policy",
+    "metadata": { "type": "view_request" }
+  },
+  {
+    "id": "sf_028",
+    "tenant_id": "sf",
+    "content": "San Francisco offers a limited number of corner rooms with extra window angles, ideal for guests who enjoy city lights through fog. These rooms sell out quickly on weekends.",
+    "category": "about",
+    "metadata": { "type": "room_highlight" }
+  },
+  {
+    "id": "sf_029",
+    "tenant_id": "sf",
+    "content": "If you are driving from the airport, note that downtown traffic can shift quickly in the evening. Concierge Elvira can suggest timing windows that typically reduce travel time from SFO.",
+    "category": "about",
+    "metadata": { "type": "airport_timing_tip" }
+  },
+  {
+    "id": "sf_030",
+    "tenant_id": "sf",
+    "content": "If you need a family friendly setup in San Francisco, Family Crypt rooms can be prepared with kid safe corner guards and soft lighting. Request this at check in or earlier for best availability.",
+    "category": "amenities",
+    "metadata": { "type": "family_safety_setup" }
+  },
+
+  {
+    "id": "ny_024",
+    "tenant_id": "ny",
+    "content": "New York check in lines are typically busiest between 4:00 PM and 6:00 PM. If you want a faster arrival, consider checking in later in the evening when the desk is calmer.",
+    "category": "policy",
+    "metadata": { "type": "peak_times" }
+  },
+  {
+    "id": "ny_025",
+    "tenant_id": "ny",
+    "content": "If you are planning a Times Square visit, the concierge can suggest routes that avoid the densest sidewalk congestion. This is helpful for guests traveling with pets or large luggage.",
+    "category": "about",
+    "metadata": { "type": "crowd_avoidance" }
+  },
+  {
+    "id": "ny_026",
+    "tenant_id": "ny",
+    "content": "New York offers a limited number of higher floor rooms that reduce street level noise even further. These are recommended for light sleepers and families traveling with young children.",
+    "category": "amenities",
+    "metadata": { "type": "quiet_high_floor" }
+  },
+  {
+    "id": "ny_027",
+    "tenant_id": "ny",
+    "content": "If you want an Empire State Building visit, evening time slots usually provide better views and fewer crowds. Concierge can help recommend timing that fits vampire friendly schedules.",
+    "category": "about",
+    "metadata": { "type": "attraction_timing" }
+  },
+  {
+    "id": "ny_028",
+    "tenant_id": "ny",
+    "content": "Vampire Comedy Night begins at 10:00 PM on Saturdays, and the lounge doors open at 9:30 PM for seating. If you arrive late, entry may be paused briefly to avoid interrupting the show.",
+    "category": "amenities",
+    "metadata": { "type": "event_logistics" }
+  },
+  {
+    "id": "ny_029",
+    "tenant_id": "ny",
+    "content": "If you are traveling with a griffin in New York, we recommend using service elevators during low traffic times. The front desk can guide you on the best window to minimize crowd interaction.",
+    "category": "safety",
+    "metadata": { "type": "large_pet_handling" }
+  },
+  {
+    "id": "ny_030",
+    "tenant_id": "ny",
+    "content": "New York can provide in room dining coordination around show schedules, including deliveries shortly after midnight. If you have a strict diet, request ingredient confirmation at ordering.",
+    "category": "dining",
+    "metadata": { "type": "late_dining_coordination" }
+  },
+
+  {
+    "id": "chicago_024",
+    "tenant_id": "chicago",
+    "content": "Chicago check in is earliest at 2:00 PM, and the desk is typically calm between 2:00 PM and 3:30 PM. If you prefer a quiet arrival, this window is often ideal.",
+    "category": "policy",
+    "metadata": { "type": "peak_times" }
+  },
+  {
+    "id": "chicago_025",
+    "tenant_id": "chicago",
+    "content": "If you are visiting Navy Pier in colder months, dress warmly because wind off the water can feel intense. The front desk can recommend indoor alternatives if weather turns harsh.",
+    "category": "about",
+    "metadata": { "type": "attraction_weather_tip" }
+  },
+  {
+    "id": "chicago_026",
+    "tenant_id": "chicago",
+    "content": "Deep dish pizza delivery in Chicago can be arranged directly to your room, and the front desk can recommend the fastest options during peak dinner hours. If you are avoiding garlic, request garlic free seasoning at ordering.",
+    "category": "dining",
+    "metadata": { "type": "pizza_delivery_details" }
+  },
+  {
+    "id": "chicago_027",
+    "tenant_id": "chicago",
+    "content": "Chicago Winter Crypt rooms include extra insulation and warmer bedding, and they are most requested between November and March. If you are visiting during this period, booking early helps.",
+    "category": "amenities",
+    "metadata": { "type": "seasonal_room_demand" }
+  },
+  {
+    "id": "chicago_028",
+    "tenant_id": "chicago",
+    "content": "If you are traveling during a snowstorm, the hotel can assist with updated driving conditions and recommend safe routes from O’Hare. Free parking remains available even during heavy snow days.",
+    "category": "safety",
+    "metadata": { "type": "winter_storm_support" }
+  },
+  {
+    "id": "chicago_029",
+    "tenant_id": "chicago",
+    "content": "Full Moon Howl a thon is designed to be fun but respectful, with quieter seating zones and scheduled intermissions. If you have sensitive hearing, ask the front desk for an ear friendly kit before the event starts.",
+    "category": "safety",
+    "metadata": { "type": "event_hearing_support" }
+  },
+  {
+    "id": "chicago_030",
+    "tenant_id": "chicago",
+    "content": "If you want Willis Tower views, evening visits often provide a calmer experience than midday crowds. The front desk can suggest the best time based on day of week and weather.",
+    "category": "about",
+    "metadata": { "type": "attraction_timing" }
+  }
+]

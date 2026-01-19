@@ -271,7 +271,7 @@ Every component is **swappable**. No vendor lock-in. Test everything.
 
 | Layer | Primary Choice | Alternatives to Test |
 |-------|---------------|---------------------|
-| Language | Python 3.11+ | - |
+| Language | Python 3.12+ | - |
 | Framework | FastAPI | - |
 | Phone | VAPI (free number) | Twilio, Telnyx, SignalWire |
 | STT | Deepgram | AssemblyAI, Whisper |

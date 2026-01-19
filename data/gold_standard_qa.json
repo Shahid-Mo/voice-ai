@@ -1,0 +1,122 @@
+[
+  {
+    "id": "eval_001",
+    "question": "What is the pet policy?",
+    "ground_truth": "We welcome unusual companions, including dragons, griffins, and three-headed dogs, as long as they are supervised in public areas. Fire-breathing pets must be registered at check-in so we can provide a spark-safe room setup, and open flame tricks are not allowed in hallways or near drapes.",
+    "expected_tenant_id": null,
+    "difficulty": "easy",
+    "type": "global_retrieval"
+  },
+  {
+    "id": "eval_002",
+    "question": "What time is check-in in San Francisco?",
+    "ground_truth": "Check-in at our San Francisco location is at 3:00 PM.",
+    "expected_tenant_id": "sf",
+    "difficulty": "medium",
+    "type": "specific_retrieval"
+  },
+  {
+    "id": "eval_003",
+    "question": "When can I check in at the Chicago hotel?",
+    "ground_truth": "Chicago offers the earliest check-in at 2:00 PM.",
+    "expected_tenant_id": "chicago",
+    "difficulty": "medium",
+    "type": "specific_retrieval"
+  },
+  {
+    "id": "eval_004",
+    "question": "Do you have parking in New York?",
+    "ground_truth": "Yes. New York offers self-parking for $60 per night, and large vehicles should call ahead so we can confirm garage fit and entry instructions.",
+    "expected_tenant_id": "ny",
+    "difficulty": "medium",
+    "type": "specific_retrieval"
+  },
+  {
+    "id": "eval_005",
+    "question": "Is breakfast included?",
+    "ground_truth": "I don’t have information that complimentary breakfast is included. What we do offer is blood type room service options, a garlic-free menu on request, and midnight snacks available nightly from 11:00 PM to 2:00 AM in the lobby lounge.",
+    "expected_tenant_id": null,
+    "difficulty": "hard",
+    "type": "negative_constraint"
+  },
+  {
+    "id": "eval_006",
+    "question": "Can I bring my dragon to the San Francisco location?",
+    "ground_truth": "Yes, dragons are welcome. In San Francisco, we can provide a chilled stone rest pad and a water station if you notify the front desk when you arrive so the setup is ready before your pet enters the room.",
+    "expected_tenant_id": "sf",
+    "difficulty": "hard",
+    "type": "synthesis_global_local"
+  },
+  {
+    "id": "eval_007",
+    "question": "What happens if I need to cancel my reservation?",
+    "ground_truth": "Cancellation is free with at least 24 hours’ notice before your scheduled check-in time. Cancellations inside 24 hours may be charged one night’s room and tax, unless you booked a nonrefundable promotional rate.",
+    "expected_tenant_id": null,
+    "difficulty": "easy",
+    "type": "global_retrieval"
+  },
+  {
+    "id": "eval_008",
+    "question": "Tell me about the loyalty program.",
+    "ground_truth": "Our Fang Club loyalty program lets you earn points on room stays, dining, and spa services. Tiers include Fresh Fang, Night Stalker, and Elder, with benefits like late checkout when available and complimentary midnight snacks at higher tiers.",
+    "expected_tenant_id": null,
+    "difficulty": "easy",
+    "type": "global_retrieval"
+  },
+  {
+    "id": "eval_009",
+    "question": "Is there a gym at the Chicago hotel?",
+    "ground_truth": "Yes. Every Hotel Transylvania location has a gym and spa. In Chicago, you can also book Winter Crypt rooms if you prefer extra insulation and warmer bedding during cold months.",
+    "expected_tenant_id": "chicago",
+    "difficulty": "medium",
+    "type": "synthesis_global_local"
+  },
+  {
+    "id": "eval_010",
+    "question": "What is the address of the New York location?",
+    "ground_truth": "Hotel Transylvania New York is located at 123 Ghoul Street, New York, NY 10001.",
+    "expected_tenant_id": "ny",
+    "difficulty": "easy",
+    "type": "fact_lookup"
+  },
+  {
+    "id": "eval_011",
+    "question": "I am a werewolf. Do you have silver-free rooms?",
+    "ground_truth": "Yes, rooms are silver-free by default to protect werewolves and other silver-sensitive guests. If you’re staying in Chicago during a full moon, we can also provide extra sound buffering and a calming kit on request.",
+    "expected_tenant_id": "chicago",
+    "difficulty": "hard",
+    "type": "synthesis_global_local"
+  },
+  {
+    "id": "eval_012",
+    "question": "How much does parking cost in SF?",
+    "ground_truth": "Valet parking in San Francisco is $40 per night in our underground garage.",
+    "expected_tenant_id": "sf",
+    "difficulty": "medium",
+    "type": "fact_lookup"
+  },
+  {
+    "id": "eval_013",
+    "question": "Is there a pool?",
+    "ground_truth": "Yes. Every location has a pool that is heated or cooled depending on the season, and pool temperature can be adjusted for cold-blooded guests on request within safe limits.",
+    "expected_tenant_id": null,
+    "difficulty": "easy",
+    "type": "global_retrieval"
+  },
+  {
+    "id": "eval_014",
+    "question": "What events are happening in New York?",
+    "ground_truth": "Every Saturday at 10:00 PM, the New York location hosts Vampire Comedy Night in the lounge. Seating is first come first served for guests.",
+    "expected_tenant_id": "ny",
+    "difficulty": "medium",
+    "type": "specific_retrieval"
+  },
+  {
+    "id": "eval_015",
+    "question": "I need to work. Do you have Wi-Fi?",
+    "ground_truth": "Yes. All locations offer complimentary Wi-Fi in guestrooms and common areas. In San Francisco, you can ask the front desk about premium speed upgrades if you need higher bandwidth.",
+    "expected_tenant_id": "sf",
+    "difficulty": "medium",
+    "type": "synthesis_global_local"
+  }
+]
