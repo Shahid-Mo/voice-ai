@@ -1,24 +1,20 @@
 """
-Simple test for Deepgram STT.
+Simple async test for Deepgram STT.
 
 Run: uv run python tests/test_deepgram_simple.py
 Requires: DEEPGRAM_API_KEY in .env
 """
 
-import time
+import asyncio
 from pathlib import Path
+from typing import Any
 
 from voice_ai.providers.stt.deepgram import DeepgramSTT
 
 
-def on_message(message):
+def on_message(message: Any) -> None:
     """Print all messages from Deepgram."""
     msg_type = getattr(message, "type", "unknown")
-
-    # DEBUG: Print ALL messages
-    print(f"[DEBUG] Message type: {msg_type}")
-    if hasattr(message, "__dict__"):
-        print(f"[DEBUG] Message content: {message.__dict__}")
 
     if msg_type == "Connected":
         print("✓ Connected to Deepgram Flux\n")
@@ -28,13 +24,15 @@ def on_message(message):
         transcript = getattr(message, "transcript", "")
 
         if event == "Update" and transcript:
+            # Interim transcript - overwrites previous line
             print(f"\r  Interim: {transcript}", end="", flush=True)
 
         elif event == "EndOfTurn" and transcript:
+            # Final transcript - move to new line
             print(f"\n✓ Final: {transcript}\n")
 
 
-def main():
+async def main():
     """Test with actual audio file."""
     print("Testing Deepgram STT with audio file...\n")
 
@@ -56,27 +54,19 @@ def main():
 
     # Connect and transcribe
     stt = DeepgramSTT()
-    stt.connect(on_message=on_message, encoding="linear16", sample_rate=16000)
 
-    print("Sending audio...")
+    print("Streaming audio to Deepgram...\n")
 
-    # Send in chunks at real-time speed
-    # At 16kHz mono linear16: 32000 bytes/sec
-    # 4096 bytes = 0.128 seconds of audio
-    chunk_size = 4096
-    chunk_duration = chunk_size / 32000.0  # 0.128 seconds
+    await stt.transcribe_stream(
+        audio_data=audio_data,
+        on_message=on_message,
+        encoding="linear16",
+        sample_rate=16000,
+        chunk_size=4096,
+    )
 
-    for i in range(0, len(audio_data), chunk_size):
-        stt.send_audio(audio_data[i:i + chunk_size])
-        time.sleep(chunk_duration)
-
-    # Wait a bit longer for final processing
-    print("Waiting for final transcript...\n")
-    time.sleep(3)
-
-    stt.close()
     print("✓ Done")
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
