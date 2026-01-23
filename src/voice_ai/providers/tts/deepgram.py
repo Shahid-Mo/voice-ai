@@ -1,17 +1,16 @@
 """
 Deepgram TTS using Aura 2 model.
 
-Async implementation following official Deepgram SDK patterns.
+Fully async implementation using AsyncDeepgramClient.
 """
 
 import asyncio
-import threading
 import wave
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from deepgram import DeepgramClient
+from deepgram import AsyncDeepgramClient
 from deepgram.core.events import EventType
 from deepgram.speak.v1.types import (
     SpeakV1Close,
@@ -26,7 +25,7 @@ class DeepgramTTS:
     """
     Deepgram Aura 2 TTS provider.
 
-    Async wrapper around Deepgram SDK for streaming text-to-speech.
+    Fully async implementation using AsyncDeepgramClient - no threading needed.
     """
 
     def __init__(self, api_key: str | None = None):
@@ -37,7 +36,7 @@ class DeepgramTTS:
             api_key: Deepgram API key (defaults to settings.deepgram_api_key)
         """
         self.api_key = api_key or settings.deepgram_api_key
-        self.client = DeepgramClient(api_key=self.api_key)
+        self.client = AsyncDeepgramClient(api_key=self.api_key)
 
     async def synthesize_stream(
         self,
@@ -70,8 +69,8 @@ class DeepgramTTS:
         # Track completion
         done_event = asyncio.Event()
 
-        # Connect using sync context manager (Deepgram SDK is sync, not async)
-        with self.client.speak.v1.connect(
+        # Connect using async context manager - NO THREADING!
+        async with self.client.speak.v1.connect(
             model=model,
             encoding=encoding,
             sample_rate=sample_rate,
@@ -86,22 +85,20 @@ class DeepgramTTS:
                     # Text event (Connected, Flushed, Close, etc)
                     msg_type = getattr(message, "type", "Unknown")
                     if msg_type == "Close":
-                        # Signal completion
-                        asyncio.run_coroutine_threadsafe(
-                            done_event.set(), asyncio.get_event_loop()
-                        )
+                        # Signal completion - no more threadsafe bullshit!
+                        asyncio.create_task(done_event.set())
 
             # Register event handlers
             connection.on(EventType.MESSAGE, on_message)
 
-            # Start listening in background thread (not async)
-            threading.Thread(target=connection.start_listening, daemon=True).start()
+            # Start listening (async task, not thread!)
+            listen_task = asyncio.create_task(connection.start_listening())
 
             # Send text for synthesis
-            connection.send_text(SpeakV1Text(text=text))
+            await connection.send_text(SpeakV1Text(text=text))
 
             # Flush to ensure all audio is sent
-            connection.send_flush(SpeakV1Flush(type="Flush"))
+            await connection.send_flush(SpeakV1Flush(type="Flush"))
 
             # Wait for completion or timeout
             try:
@@ -110,10 +107,17 @@ class DeepgramTTS:
                 pass
 
             # Close connection
-            connection.send_close(SpeakV1Close(type="Close"))
+            await connection.send_close(SpeakV1Close(type="Close"))
 
             # Brief wait for close to process
             await asyncio.sleep(0.1)
+
+            # Cancel listen task
+            listen_task.cancel()
+            try:
+                await listen_task
+            except asyncio.CancelledError:
+                pass
 
             # Call completion callback
             if on_complete:

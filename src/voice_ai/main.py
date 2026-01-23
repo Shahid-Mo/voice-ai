@@ -2,7 +2,7 @@
 
 from fastapi import FastAPI
 
-from voice_ai.api.routes import health
+from voice_ai.api.routes import health, voice_ws
 from voice_ai.config import settings
 
 app = FastAPI(
@@ -13,6 +13,7 @@ app = FastAPI(
 
 # Include routers
 app.include_router(health.router)
+app.include_router(voice_ws.router)
 
 
 @app.get("/")
