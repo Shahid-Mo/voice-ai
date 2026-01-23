@@ -129,9 +129,9 @@ class TwilioVoiceSession(VoiceSession):
 
     async def on_start(self, start_data: dict):
         """Handle Twilio stream start event."""
-        # Could extract call metadata here if needed
-        # start_data contains: streamSid, accountSid, callSid, etc.
-        pass
+        # Extract stream metadata
+        self.stream_sid = start_data.get("start", {}).get("streamSid")
+        logger.info(f"📞 Stream SID: {self.stream_sid}")
 
     async def send_audio(self, pcm_data: bytes) -> None:
         """
@@ -142,16 +142,27 @@ class TwilioVoiceSession(VoiceSession):
         Args:
             pcm_data: PCM linear16 16kHz mono (from TTS)
         """
+        # Track audio chunks sent
+        if not hasattr(self, "_audio_chunk_count"):
+            self._audio_chunk_count = 0
+        self._audio_chunk_count += 1
+
         # Convert PCM 16kHz → mulaw 8kHz
         mulaw_audio = pcm_16k_to_mulaw(pcm_data, output_rate=8000)
 
         # Base64 encode
         payload_b64 = base64.b64encode(mulaw_audio).decode("utf-8")
 
+        # Log first chunk and summary every 10 chunks
+        if self._audio_chunk_count == 1:
+            logger.info(f"🔊 Sending audio to Twilio: PCM {len(pcm_data)} bytes → μ-law {len(mulaw_audio)} bytes → b64 {len(payload_b64)} chars")
+        elif self._audio_chunk_count % 10 == 0:
+            logger.info(f"🔊 Sent {self._audio_chunk_count} audio chunks to Twilio...")
+
         # Wrap in Twilio media message
         media_message = {
             "event": "media",
-            "streamSid": getattr(self, "stream_sid", None),
+            "streamSid": self.stream_sid,
             "media": {"payload": payload_b64},
         }
 

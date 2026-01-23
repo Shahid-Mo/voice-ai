@@ -73,6 +73,9 @@ class VoiceSession:
             model="flux-general-en",
             encoding="linear16",
             sample_rate=16000,
+            # End-of-turn detection optimization (simple mode)
+            eot_threshold="0.6",  # Lower than default 0.7 for faster detection
+            eot_timeout_ms="3000",  # 3 seconds instead of default 5 seconds
         )
 
         # Enter the context manager
@@ -219,9 +222,17 @@ class VoiceSession:
             sample_rate=16000,
         ) as tts_connection:
             # Register async audio handler
+            audio_chunk_count = 0
+
             async def on_tts_audio(message):
+                nonlocal audio_chunk_count
+
                 if isinstance(message, bytes):
-                    # Send PCM audio to client (no logging - too noisy)
+                    audio_chunk_count += 1
+                    # Log first chunk only
+                    if audio_chunk_count == 1:
+                        logger.info(f"🔊 TTS audio received: {len(message)} bytes (first chunk)")
+                    # Send PCM audio to client
                     await self.send_audio(message)
 
             tts_connection.on(EventType.MESSAGE, on_tts_audio)
@@ -271,6 +282,7 @@ class VoiceSession:
                 await tts_connection.send_flush(SpeakV1Flush(type="Flush"))
 
             logger.info(f"← TTS: {sentence_count} sentence(s) synthesized")
+            logger.info(f"🔊 TTS audio: {audio_chunk_count} total chunks received")
 
             # Wait for final audio processing
             await asyncio.sleep(0.5)
