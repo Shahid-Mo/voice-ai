@@ -14,6 +14,23 @@ A modular Voice AI platform with **pluggable providers** for every component. Th
 - **Primary Providers:** Deepgram (STT/TTS), OpenAI (LLM)
 - **Package Manager:** uv
 
+## Architecture Philosophy: 100% Async
+
+**WE ARE STAUNCHLY IN THE ASYNC CAMP. NO THREADING. EVER.**
+
+- All code uses `async`/`await` - no `threading`, no `ThreadPoolExecutor`, no sync hacks
+- All providers use native async clients: `AsyncDeepgramClient`, async OpenAI SDK
+- Event handlers are `async def` functions
+- Audio streaming is fully async - no blocking operations
+- Proven pattern: see `tests/test_async_deepgram.py` for reference implementation
+
+**Why Async-Only:**
+- Non-blocking I/O for real-time audio streaming
+- Better resource utilization (thousands of concurrent connections)
+- Simpler reasoning (no thread synchronization, no locks)
+- Native FastAPI/uvicorn compatibility
+- Future-proof for high-scale deployments
+
 ## Project Structure
 
 ```
@@ -113,22 +130,29 @@ DEBUG=true
 - [x] TTS interface + Deepgram Aura implementation
 
 ### Next
-- [ ] OpenAI LLM provider implementation
-- [ ] Voice orchestrator service (STT → LLM → TTS pipeline)
+- [x] OpenAI LLM provider implementation (Responses API with streaming)
+- [x] Voice orchestrator service (STT → LLM → TTS pipeline)
+- [x] Twilio Media Streams integration (phone calls via WebSocket)
+- [x] Audio format conversion (μ-law ↔ PCM, sample rate conversion)
+- [x] Fully async architecture (AsyncDeepgramClient proven)
+- [ ] Debug TTS audio playback on Twilio
 - [ ] VectorDB interface + PgVector implementation
 - [ ] RAG service
-- [ ] Phone/PSTN gateway integration (VAPI/Twilio)
 - [ ] Benchmark scripts for provider comparison
 
 ## Key Design Decisions
 
-1. **Abstract interfaces for everything** - Every provider implements a base interface. Swap Deepgram for AssemblyAI by changing one config value.
+1. **100% Async, No Threading** - All code uses `async`/`await`. No `threading` module, no `ThreadPoolExecutor`, no sync hacks. See `tests/test_async_deepgram.py` for proven async patterns.
 
-2. **Async-first** - All provider methods are async for non-blocking I/O.
+2. **Pluggable provider interfaces** - Every provider implements a base interface. Swap Deepgram for AssemblyAI by changing one config value.
 
-3. **Event-based STT streaming** - `STTEvent` with types: TRANSCRIPT, END_OF_TURN, EAGER_END_OF_TURN, TURN_RESUMED, CONNECTED, ERROR, CLOSED.
+3. **Persistent WebSocket connections** - STT connection stays open for entire call (continuous streaming, not buffering). Audio chunks sent in real-time.
 
-4. **Config from environment** - `pydantic-settings` auto-loads `.env`, validates types, and provides typed access via `settings.deepgram_api_key`.
+4. **Sentence-by-sentence TTS streaming** - Buffer LLM tokens until sentence boundary (. ! ?), immediately synthesize, start playing while LLM still generating (low latency).
+
+5. **Format-agnostic pipeline** - `VoiceSession` works with PCM 16kHz internally. Endpoints handle conversion (μ-law for Twilio, future: WebM for browsers).
+
+6. **Config from environment** - `pydantic-settings` auto-loads `.env`, validates types, provides typed access via `settings.deepgram_api_key`.
 
 ## Use Cases to Implement
 

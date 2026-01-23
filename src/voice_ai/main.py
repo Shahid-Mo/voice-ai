@@ -1,9 +1,22 @@
 """FastAPI application entry point."""
 
+import logging
+
 from fastapi import FastAPI
 
 from voice_ai.api.routes import health, voice_ws
 from voice_ai.config import settings
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,  # Use INFO - DEBUG is too noisy for audio streams
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+
+# Reduce noise from external libraries
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 app = FastAPI(
     title="Voice AI",

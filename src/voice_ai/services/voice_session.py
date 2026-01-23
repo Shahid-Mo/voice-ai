@@ -7,14 +7,20 @@ Format-agnostic: expects PCM 16kHz mono in/out, endpoints handle conversion.
 
 import asyncio
 import base64
+import logging
 import re
 from typing import Literal
 
+from deepgram import AsyncDeepgramClient
+from deepgram.core.events import EventType
+from deepgram.listen.v2.types import ListenV2CloseStream
 from fastapi import WebSocket
 
+from voice_ai.config import settings
 from voice_ai.providers.llm.openai import OpenAILLM
-from voice_ai.providers.stt.deepgram import DeepgramSTT
 from voice_ai.providers.tts.deepgram import DeepgramTTS
+
+logger = logging.getLogger(__name__)
 
 State = Literal["idle", "listening", "processing", "speaking"]
 
@@ -24,7 +30,7 @@ class VoiceSession:
     Orchestrates voice AI pipeline for a single conversation.
 
     Format-agnostic orchestrator that handles:
-    - STT (speech → text) with turn detection
+    - STT (speech → text) with turn detection via continuous streaming
     - LLM (text → response) with streaming
     - TTS (response → speech) with sentence-by-sentence synthesis
 
@@ -41,15 +47,77 @@ class VoiceSession:
         """
         self.websocket = websocket
 
-        # Initialize providers (already async!)
-        self.stt = DeepgramSTT()
+        # Initialize providers
+        self.stt_client = AsyncDeepgramClient(api_key=settings.deepgram_api_key)
         self.llm = OpenAILLM()
         self.tts = DeepgramTTS()
+
+        # STT connection (persistent, kept open for continuous streaming)
+        self.stt_connection = None
+        self.stt_listen_task = None
+        self._stt_context_manager = None
 
         # Session state
         self.state: State = "idle"
         self.conversation_id: str | None = None
-        self.audio_buffer: list[bytes] = []
+
+        logger.info("VoiceSession initialized")
+
+    async def start(self):
+        """Start the session - opens persistent STT connection."""
+        logger.info("📞 Voice session started")
+
+        # Open persistent STT connection (stays open for entire call)
+        # Use async with context manager (YOUR working test pattern!)
+        self._stt_context_manager = self.stt_client.listen.v2.connect(
+            model="flux-general-en",
+            encoding="linear16",
+            sample_rate=16000,
+        )
+
+        # Enter the context manager
+        self.stt_connection = await self._stt_context_manager.__aenter__()
+        logger.info("✓ STT connection opened")
+
+        # Register ASYNC event handlers (like your test!)
+        async def on_stt_message(message):
+            msg_type = getattr(message, "type", "Unknown")
+
+            if msg_type == "TurnInfo":
+                event = getattr(message, "event", "")
+                text = getattr(message, "transcript", "")
+
+                if event == "Update" and text:
+                    # Interim transcript
+                    await self.send_transcript(text, is_final=False)
+
+                elif event == "EndOfTurn" and text:
+                    # Final transcript - user stopped talking
+                    logger.info(f"✓ STT: '{text}'")
+                    await self.send_transcript(text, is_final=True)
+                    await self.on_turn_end(text)
+
+            elif msg_type == "Connected":
+                logger.info("✅ Connected to Deepgram Flux")
+
+        async def on_stt_error(error):
+            logger.error(f"❌ STT error: {error}")
+
+        async def on_stt_close(close_msg):
+            logger.warning(f"⚠️  STT connection closed: {close_msg}")
+
+        self.stt_connection.on(EventType.MESSAGE, on_stt_message)
+        self.stt_connection.on(EventType.ERROR, on_stt_error)
+        self.stt_connection.on(EventType.CLOSE, on_stt_close)
+
+        # Start listening task (runs continuously)
+        self.stt_listen_task = asyncio.create_task(
+            self.stt_connection.start_listening()
+        )
+
+        self.state = "listening"
+        await self.send_status("Listening...")
+        logger.info("🎤 Listening...")
 
     async def send_json(self, data: dict) -> None:
         """Send JSON message to client."""
@@ -89,43 +157,18 @@ class VoiceSession:
         """
         Handle incoming audio chunk (PCM format).
 
-        Buffers audio and starts STT stream if needed.
+        Sends directly to persistent STT connection for continuous streaming.
 
         Args:
             pcm_chunk: PCM linear16 16kHz mono audio bytes
         """
-        # Buffer audio
-        self.audio_buffer.append(pcm_chunk)
+        if not self.stt_connection:
+            logger.warning("Received audio but STT connection not ready - call start() first")
+            return
 
-        # Start listening if idle
-        if self.state == "idle":
-            await self.start_listening()
-
-    async def start_listening(self) -> None:
-        """Start STT streaming with buffered audio."""
-        self.state = "listening"
-        await self.send_status("Listening...")
-
-        # Define STT event handler (async!)
-        async def on_stt_message(message):
-            msg_type = getattr(message, "type", "unknown")
-
-            if msg_type == "TurnInfo":
-                event = getattr(message, "event", "")
-                text = getattr(message, "transcript", "")
-
-                if event == "Update" and text:
-                    # Interim transcript
-                    await self.send_transcript(text, is_final=False)
-
-                elif event == "EndOfTurn" and text:
-                    # Final transcript - user stopped talking
-                    await self.send_transcript(text, is_final=True)
-                    await self.on_turn_end(text)
-
-        # Stream buffered audio to STT
-        audio_data = b"".join(self.audio_buffer)
-        await self.stt.transcribe_stream(audio_data, on_stt_message)
+        # Send directly to STT connection (continuous streaming!)
+        # (No logging here - happens 50+ times/second!)
+        await self.stt_connection.send_media(pcm_chunk)
 
     async def on_turn_end(self, transcript: str) -> None:
         """
@@ -139,15 +182,13 @@ class VoiceSession:
         self.state = "processing"
         await self.send_status("Processing...")
 
-        # Clear audio buffer
-        self.audio_buffer = []
-
         # Process with LLM and synthesize response
         await self.process_llm_and_tts(transcript)
 
-        # Reset to idle
-        self.state = "idle"
-        await self.send_status("Ready")
+        # Reset to listening (STT connection stays open!)
+        self.state = "listening"
+        await self.send_status("Listening...")
+        logger.info("✓ Turn complete\n")
 
     async def process_llm_and_tts(self, user_input: str) -> None:
         """
@@ -164,6 +205,9 @@ class VoiceSession:
         # Create conversation on first turn
         if not self.conversation_id:
             self.conversation_id = await self.llm.create_conversation()
+            logger.info(f"✓ Conversation created: {self.conversation_id}")
+
+        logger.info(f"→ LLM: '{user_input}'")
 
         self.state = "speaking"
         await self.send_status("Speaking...")
@@ -174,12 +218,10 @@ class VoiceSession:
             encoding="linear16",
             sample_rate=16000,
         ) as tts_connection:
-            from deepgram.core.events import EventType
-
             # Register async audio handler
             async def on_tts_audio(message):
                 if isinstance(message, bytes):
-                    # Send PCM audio to client
+                    # Send PCM audio to client (no logging - too noisy)
                     await self.send_audio(message)
 
             tts_connection.on(EventType.MESSAGE, on_tts_audio)
@@ -189,6 +231,7 @@ class VoiceSession:
 
             # Stream LLM and synthesize sentence-by-sentence
             sentence_buffer = ""
+            sentence_count = 0
 
             async for llm_chunk in self.llm.stream_complete(
                 input=user_input,
@@ -202,6 +245,8 @@ class VoiceSession:
                 # Check for sentence boundary (. ! ?)
                 if re.search(r"[.!?]\s*$", sentence_buffer):
                     from deepgram.speak.v1.types import SpeakV1Flush, SpeakV1Text
+
+                    sentence_count += 1
 
                     # Send sentence to TTS immediately
                     await tts_connection.send_text(
@@ -218,10 +263,14 @@ class VoiceSession:
             if sentence_buffer.strip():
                 from deepgram.speak.v1.types import SpeakV1Flush, SpeakV1Text
 
+                sentence_count += 1
+
                 await tts_connection.send_text(
                     SpeakV1Text(text=sentence_buffer.strip())
                 )
                 await tts_connection.send_flush(SpeakV1Flush(type="Flush"))
+
+            logger.info(f"← TTS: {sentence_count} sentence(s) synthesized")
 
             # Wait for final audio processing
             await asyncio.sleep(0.5)
@@ -234,6 +283,22 @@ class VoiceSession:
 
     async def cleanup(self) -> None:
         """Clean up resources when session ends."""
-        # Providers are connection-based, cleanup happens in context managers
-        # Nothing to do here currently
-        pass
+        logger.info("Cleaning up voice session")
+
+        # Close STT connection properly (like your test!)
+        if self.stt_connection:
+            try:
+                # Send close stream
+                await self.stt_connection.send_close_stream(
+                    ListenV2CloseStream(type="CloseStream")
+                )
+                # Wait for listen task
+                if self.stt_listen_task:
+                    await self.stt_listen_task
+                # Exit context manager
+                if self._stt_context_manager:
+                    await self._stt_context_manager.__aexit__(None, None, None)
+            except Exception as e:
+                logger.error(f"Error closing STT connection: {e}")
+
+        logger.info("Voice session cleaned up")

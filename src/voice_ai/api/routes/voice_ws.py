@@ -8,11 +8,14 @@ Handles bidirectional audio streaming for:
 
 import base64
 import json
+import logging
 
 from fastapi import APIRouter, Request, Response, WebSocket, WebSocketDisconnect
 
 from voice_ai.audio_utils import mulaw_to_pcm_16k, pcm_16k_to_mulaw
 from voice_ai.services.voice_session import VoiceSession
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -67,7 +70,7 @@ async def twilio_websocket(websocket: WebSocket):
     https://www.twilio.com/docs/voice/twiml/stream
     """
     await websocket.accept()
-    print("📞 Twilio call connected")
+    logger.info("Twilio call connected")
 
     # Create voice session
     session = TwilioVoiceSession(websocket)
@@ -80,11 +83,14 @@ async def twilio_websocket(websocket: WebSocket):
             if event_type == "start":
                 # Call started
                 stream_sid = data.get("start", {}).get("streamSid")
-                print(f"📞 Stream started: {stream_sid}")
+                logger.info(f"Stream started: {stream_sid}")
                 await session.on_start(data)
 
+                # Start the voice session (opens persistent STT connection)
+                await session.start()
+
             elif event_type == "media":
-                # Audio chunk received
+                # Audio chunk received (happens 50+ times/second - no logging!)
                 # Extract Base64-encoded mulaw payload
                 payload_b64 = data["media"]["payload"]
 
@@ -99,15 +105,15 @@ async def twilio_websocket(websocket: WebSocket):
 
             elif event_type == "stop":
                 # Call ended
-                print("📞 Stream stopped")
+                logger.info("Stream stopped")
                 await session.cleanup()
                 break
 
     except WebSocketDisconnect:
-        print("📞 Twilio disconnected")
+        logger.info("Twilio disconnected")
         await session.cleanup()
     except Exception as e:
-        print(f"❌ Error in Twilio WebSocket: {e}")
+        logger.error(f"Error in Twilio WebSocket: {e}", exc_info=True)
         await session.cleanup()
         raise
 
