@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     # Deepgram
     deepgram_api_key: str = ""
 
+    #groq 
+    groq_api_key: str = ""
+
     # OpenAI
     openai_api_key: str = ""
 
