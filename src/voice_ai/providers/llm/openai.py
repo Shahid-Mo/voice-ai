@@ -1,11 +1,15 @@
 """OpenAI LLM provider using Responses API."""
 
+import logging
+import time
 from collections.abc import AsyncIterator
 from typing import Any
 
 from openai import AsyncOpenAI
 
 from voice_ai.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class OpenAILLM:
@@ -90,11 +94,22 @@ class OpenAILLM:
         if conversation_id:
             params["conversation"] = conversation_id
 
+        # Track API timing
+        logger.info(f"⏱️  Calling OpenAI API (model: {self.model})...")
+        start_time = time.time()
+        first_token_received = False
+
         # Use SDK's stream context manager for proper event handling
         async with self._client.responses.stream(**params) as stream:
             async for event in stream:
                 # Yield text deltas for voice output
                 if event.type == "response.output_text.delta":
+                    # Log first token timing
+                    if not first_token_received:
+                        first_token_time = time.time() - start_time
+                        logger.info(f"⚡ First token received in {first_token_time:.2f}s")
+                        first_token_received = True
+
                     yield event.delta
                 # Handle refusals (safety system blocked the request)
                 elif event.type == "response.refusal.delta":
@@ -104,3 +119,6 @@ class OpenAILLM:
                 elif event.type == "response.error":
                     # Could raise exception or yield error message
                     pass
+
+        total_time = time.time() - start_time
+        logger.info(f"✓ OpenAI stream complete in {total_time:.2f}s")
