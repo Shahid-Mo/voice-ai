@@ -72,50 +72,55 @@ async def twilio_websocket(websocket: WebSocket):
     await websocket.accept()
     logger.info("Twilio call connected")
 
-    # Create voice session
-    session = TwilioVoiceSession(websocket)
-
+    # Wait for "start" event before creating session
+    start_data = None
     try:
         async for message in websocket.iter_text():
             data = json.loads(message)
-            event_type = data.get("event")
-
-            if event_type == "start":
-                # Call started
+            if data.get("event") == "start":
+                start_data = data
                 stream_sid = data.get("start", {}).get("streamSid")
                 logger.info(f"Stream started: {stream_sid}")
-                await session.on_start(data)
-
-                # Start the voice session (opens persistent STT connection)
-                await session.start()
-
-            elif event_type == "media":
-                # Audio chunk received (happens 50+ times/second - no logging!)
-                # Extract Base64-encoded mulaw payload
-                payload_b64 = data["media"]["payload"]
-
-                # Decode to mulaw bytes
-                mulaw_audio = base64.b64decode(payload_b64)
-
-                # Convert mulaw 8kHz → PCM 16kHz
-                pcm_audio = mulaw_to_pcm_16k(mulaw_audio, input_rate=8000)
-
-                # Feed to VoiceSession
-                await session.handle_audio_chunk(pcm_audio)
-
-            elif event_type == "stop":
-                # Call ended
-                logger.info("Stream stopped")
-                await session.cleanup()
                 break
+    except WebSocketDisconnect:
+        logger.info("Twilio disconnected before stream started")
+        return
+
+    # Now enter session context (STT connection auto-opened)
+    try:
+        async with TwilioVoiceSession(websocket) as session:
+            await session.on_start(start_data)
+
+            # Process remaining events (media, stop)
+            async for message in websocket.iter_text():
+                data = json.loads(message)
+                event_type = data.get("event")
+
+                if event_type == "media":
+                    # Audio chunk received (happens 50+ times/second - no logging!)
+                    # Extract Base64-encoded mulaw payload
+                    payload_b64 = data["media"]["payload"]
+
+                    # Decode to mulaw bytes
+                    mulaw_audio = base64.b64decode(payload_b64)
+
+                    # Convert mulaw 8kHz → PCM 16kHz
+                    pcm_audio = mulaw_to_pcm_16k(mulaw_audio, input_rate=8000)
+
+                    # Feed to VoiceSession
+                    await session.handle_audio_chunk(pcm_audio)
+
+                elif event_type == "stop":
+                    # Call ended
+                    logger.info("Stream stopped")
+                    break
 
     except WebSocketDisconnect:
         logger.info("Twilio disconnected")
-        await session.cleanup()
     except Exception as e:
         logger.error(f"Error in Twilio WebSocket: {e}", exc_info=True)
-        await session.cleanup()
         raise
+    # Session automatically cleaned up on exit (async with)
 
 
 class TwilioVoiceSession(VoiceSession):
@@ -168,19 +173,3 @@ class TwilioVoiceSession(VoiceSession):
 
         # Send as JSON
         await self.websocket.send_text(json.dumps(media_message))
-
-    async def send_json(self, data: dict) -> None:
-        """
-        Send JSON message to client.
-
-        For Twilio, we could send marks (metadata) but generally
-        we just send audio. This override prevents raw JSON from
-        being sent to Twilio which expects specific message formats.
-
-        Args:
-            data: Message data (type, content, etc.)
-        """
-        # Twilio doesn't support arbitrary JSON messages
-        # We could send "mark" events for tracking, but for now skip
-        # Only audio is sent via send_audio()
-        pass
