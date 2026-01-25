@@ -189,10 +189,11 @@ class VoiceSession:
         """
         Process user input through LLM and synthesize audio response.
 
-        Uses chunk-by-chunk streaming for MAXIMUM low latency:
-        - Send each LLM chunk immediately to TTS (no buffering!)
-        - Flush after every chunk to start playing ASAP
-        - Audio starts playing within ~1 second instead of waiting for sentences
+        Uses sentence-by-sentence streaming for optimal quality + low latency:
+        - Buffer LLM chunks until sentence boundary (. ! ? \n)
+        - Send complete sentences to TTS for natural synthesis
+        - Audio starts playing after first sentence (still fast!)
+        - Much better quality than raw token streaming
 
         Args:
             user_input: User's transcribed speech
@@ -225,36 +226,79 @@ class VoiceSession:
                         logger.info(f"🔊 TTS audio received: {len(message)} bytes (first chunk)")
                     # Send PCM audio to client
                     await self.send_audio(message)
+                else:
+                    # Non-audio message (metadata, warnings, etc.)
+                    logger.debug(f"TTS message: {type(message).__name__}")
+
+            async def on_tts_error(error):
+                logger.error(f"❌ TTS error: {error}")
+
+            async def on_tts_close(close_msg):
+                logger.warning(f"⚠️  TTS connection closed: {close_msg}")
 
             tts_connection.on(EventType.MESSAGE, on_tts_audio)
+            tts_connection.on(EventType.ERROR, on_tts_error)
+            tts_connection.on(EventType.CLOSE, on_tts_close)
 
             # Start TTS listening task (async, not thread!)
             listen_task = asyncio.create_task(tts_connection.start_listening())
 
-            # Stream LLM and synthesize chunk-by-chunk (immediate streaming!)
+            # Stream LLM and synthesize sentence-by-sentence
             from deepgram.speak.v1.types import SpeakV1Flush, SpeakV1Text
+            import re
 
             chunk_count = 0
+            sentence_count = 0
+            sentence_buffer = ""
+
+            async def send_to_tts(text: str):
+                """Send text to TTS and flush."""
+                nonlocal sentence_count
+                if not text.strip():
+                    return
+
+                sentence_count += 1
+                # Strip markdown formatting (TTS doesn't handle it well)
+                clean_text = re.sub(r'\*\*(.+?)\*\*', r'\1', text)  # **bold** → bold
+                clean_text = re.sub(r'\*(.+?)\*', r'\1', clean_text)  # *italic* → italic
+                clean_text = clean_text.strip()
+
+                logger.info(f"→ TTS sentence {sentence_count}: '{clean_text[:80]}{'...' if len(clean_text) > 80 else ''}'")
+
+                await tts_connection.send_text(SpeakV1Text(text=clean_text))
+                await tts_connection.send_flush(SpeakV1Flush(type="Flush"))
 
             async for llm_chunk in self.llm.stream_complete(
                 input=user_input,
                 conversation_id=self.conversation_id,
             ):
                 chunk_count += 1
+                sentence_buffer += llm_chunk
 
-                # Send chunk to TTS immediately (no buffering!)
-                await tts_connection.send_text(
-                    SpeakV1Text(text=llm_chunk)
-                )
-
-                # Flush after every chunk to start playing ASAP
-                await tts_connection.send_flush(SpeakV1Flush(type="Flush"))
-
-                # Log first few chunks
-                if chunk_count <= 3:
+                # Log first few chunks for debugging
+                if chunk_count <= 5:
                     logger.debug(f"LLM chunk {chunk_count}: '{llm_chunk}'")
 
-            logger.info(f"← LLM: {chunk_count} chunks streamed to TTS")
+                # Check for sentence boundaries (. ! ? or newline)
+                # Split on these and send complete sentences immediately
+                while True:
+                    # Find the first sentence ending
+                    match = re.search(r'[.!?]\s+|\n\n+', sentence_buffer)
+                    if not match:
+                        break  # No complete sentence yet
+
+                    # Extract sentence and send to TTS
+                    end_pos = match.end()
+                    sentence = sentence_buffer[:end_pos]
+                    sentence_buffer = sentence_buffer[end_pos:]
+
+                    await send_to_tts(sentence)
+
+            # Send any remaining text in buffer (if last response didn't end with punctuation)
+            if sentence_buffer.strip():
+                await send_to_tts(sentence_buffer)
+
+            logger.info(f"← LLM: {chunk_count} chunks → {sentence_count} sentences")
             logger.info(f"🔊 TTS audio: {audio_chunk_count} total chunks received")
 
             # Wait for final audio processing
@@ -264,7 +308,14 @@ class VoiceSession:
             from deepgram.speak.v1.types import SpeakV1Close
 
             await tts_connection.send_close(SpeakV1Close(type="Close"))
-            await listen_task
+
+            # Wait for listen task with error handling
+            try:
+                await listen_task
+            except Exception as e:
+                # Catch SDK validation errors (Pydantic failures from malformed API responses)
+                logger.error(f"TTS listen task failed: {type(e).__name__}: {e}")
+                # Don't re-raise - TTS already sent audio, just log the cleanup error
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """
