@@ -299,23 +299,27 @@ class VoiceSession:
                 await send_to_tts(sentence_buffer)
 
             logger.info(f"← LLM: {chunk_count} chunks → {sentence_count} sentences")
-            logger.info(f"🔊 TTS audio: {audio_chunk_count} total chunks received")
 
-            # Wait for final audio processing
-            await asyncio.sleep(0.5)
-
-            # Close TTS connection properly
+            # Send Close message (signals end of input to TTS)
+            # TTS will finish generating audio for all sent text, then close connection
             from deepgram.speak.v1.types import SpeakV1Close
 
             await tts_connection.send_close(SpeakV1Close(type="Close"))
+            logger.debug("Sent Close message to TTS, waiting for audio generation to complete...")
 
-            # Wait for listen task with error handling
+            # Await listen_task - it will complete when TTS finishes processing all audio
+            # This ensures we don't exit the context manager while TTS is still generating
             try:
                 await listen_task
+                logger.debug("TTS listen task completed successfully")
             except Exception as e:
                 # Catch SDK validation errors (Pydantic failures from malformed API responses)
                 logger.error(f"TTS listen task failed: {type(e).__name__}: {e}")
                 # Don't re-raise - TTS already sent audio, just log the cleanup error
+
+            logger.info(f"🔊 TTS audio: {audio_chunk_count} total chunks received")
+
+            # Context manager will handle connection cleanup on exit
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """
