@@ -7,6 +7,7 @@ Format-agnostic: expects PCM 16kHz mono in/out, endpoints handle conversion.
 
 import asyncio
 import logging
+import time
 from typing import Literal
 
 from deepgram import AsyncDeepgramClient
@@ -66,6 +67,17 @@ class VoiceSession:
         self.state: State = "idle"
         self.conversation_id: str | None = None
 
+        # Interrupt handling
+        self._speak_epoch = 0  # Incremented to invalidate old audio
+        self._turn_task: asyncio.Task | None = None
+
+        self._last_interrupt_monotonic: float = 0.0
+        self._barge_in_latched: bool = False
+        self._interrupt_debounce_s: float = 0.400
+        self._update_interrupt_min_chars: int = 4
+        
+        self._tts_task: asyncio.Task | None = None  # NEW: cancellable TTS runner task
+
         logger.info("VoiceSession initialized")
 
     async def __aenter__(self):
@@ -97,16 +109,34 @@ class VoiceSession:
 
             if msg_type == "TurnInfo":
                 event = getattr(message, "event", "")
-                text = getattr(message, "transcript", "")
+                text = getattr(message, "transcript", "") or ""
 
-                if event == "Update" and text:
-                    # Interim transcript - log at debug level to avoid spam
-                    logger.debug(f"Interim: '{text}'")
+                if event == "StartOfTurn":
+                    logger.info(f"🎤 STT StartOfTurn detected (state={self.state})")
+
+                    if self.state == "speaking":
+                        now = time.monotonic()
+                        if not self._barge_in_latched and (now - self._last_interrupt_monotonic) >= self._interrupt_debounce_s:
+                            self._barge_in_latched = True
+                            self._last_interrupt_monotonic = now
+                            asyncio.create_task(self._handle_interrupt(reason="StartOfTurn"))
+
+                elif event == "Update" and text:
+                    if self.state == "speaking":
+                        cleaned = text.strip()
+                        if len(cleaned) >= self._update_interrupt_min_chars:
+                            now = time.monotonic()
+                            if not self._barge_in_latched and (now - self._last_interrupt_monotonic) >= self._interrupt_debounce_s:
+                                self._barge_in_latched = True
+                                self._last_interrupt_monotonic = now
+                                asyncio.create_task(self._handle_interrupt(reason=f"Update:{cleaned[:20]}"))
+
+                    logger.debug(f"Interim (state={self.state}): '{text}'")
 
                 elif event == "EndOfTurn" and text:
-                    # Final transcript - user stopped talking
-                    logger.info(f"✓ STT final: '{text}'")
-                    await self.on_turn_end(text)
+                    self._barge_in_latched = False  # reset latch for next time
+                    logger.info(f"✓ STT final (state={self.state}): '{text}'")
+                    asyncio.create_task(self.on_turn_end(text))
 
             elif msg_type == "Connected":
                 logger.info("✅ Connected to Deepgram Flux")
@@ -149,6 +179,17 @@ class VoiceSession:
         """
         raise NotImplementedError("Subclass must implement send_audio()")
 
+    async def clear_audio_buffer(self) -> None:
+        """
+        Clear audio playback buffer (interrupt handling).
+
+        Subclasses should override this to flush transport-specific buffers.
+        (e.g., Twilio's "clear" event, browser AudioContext buffer clear)
+
+        Default implementation does nothing (no buffer to clear).
+        """
+        pass  # Default: no-op
+
     async def handle_audio_chunk(self, pcm_chunk: bytes) -> None:
         """
         Handle incoming audio chunk (PCM format).
@@ -166,6 +207,37 @@ class VoiceSession:
         # (No logging here - happens 50+ times/second!)
         await self.stt_connection.send_media(pcm_chunk)
 
+    async def _handle_interrupt(self, reason: str = "") -> None:
+        """
+        Handle user interruption during AI speech.
+
+        Called when user starts speaking while AI is talking (barge-in).
+        Stops current audio playback immediately.
+        """
+        if self.state != "speaking":
+            return  # already handled
+
+        logger.info(f"🛑 Handling interrupt ({reason}) - stopping AI speech")
+
+        # Increment epoch to invalidate any in-flight audio chunks
+        self._speak_epoch += 1
+        logger.debug(f"Epoch incremented to {self._speak_epoch}")
+
+        # Clear Twilio's audio playback buffer
+        await self.clear_audio_buffer()
+
+        # Cancel TTS runner if active
+        if self._tts_task and not self._tts_task.done():
+            self._tts_task.cancel()
+            try:
+                await self._tts_task
+            except asyncio.CancelledError:
+                pass
+
+        # Reset state to listening (user will finish speaking, then on_turn_end will be called)
+        self.state = "listening"
+        logger.info("✓ Interrupt handled - ready for user input")
+
     async def on_turn_end(self, transcript: str) -> None:
         """
         Handle end of user's turn.
@@ -175,15 +247,44 @@ class VoiceSession:
         Args:
             transcript: Final transcript from STT
         """
-        self.state = "processing"
-        logger.info("→ Processing turn...")
+        logger.info(f"🎙️  on_turn_end() called - state: {self.state}, transcript: '{transcript}'")
 
-        # Process with LLM and synthesize response
-        await self.process_llm_and_tts(transcript)
+        # Cancel any previous turn still running
+        if self._turn_task and not self._turn_task.done():
+            logger.warning("Previous turn still active, cancelling it")
+            self._turn_task.cancel()
+            try:
+                await self._turn_task
+            except asyncio.CancelledError:
+                pass
 
-        # Reset to listening (STT connection stays open!)
-        self.state = "listening"
-        logger.info("✓ Turn complete - back to listening\n")
+        # Start new turn (non-blocking task)
+        self._turn_task = asyncio.create_task(self._run_turn(transcript))
+
+    async def _run_turn(self, transcript: str) -> None:
+        """
+        Run a complete turn: process input and generate response.
+
+        Handles cancellation gracefully to ensure state is reset.
+
+        Args:
+            transcript: User's transcribed speech
+        """
+        try:
+            self.state = "processing"
+            logger.info("→ Processing turn...")
+
+            # Process with LLM and synthesize response
+            await self.process_llm_and_tts(transcript)
+
+        except asyncio.CancelledError:
+            logger.info("Turn cancelled (interrupted)")
+            raise
+
+        finally:
+            # Always reset to listening state
+            self.state = "listening"
+            logger.info("✓ Turn complete - back to listening\n")
 
     async def process_llm_and_tts(self, user_input: str) -> None:
         """
@@ -205,121 +306,155 @@ class VoiceSession:
 
         logger.info(f"→ LLM input: '{user_input}'")
 
+        # State transition: processing → speaking
+        # Increment epoch to invalidate any previous audio chunks
+        self._speak_epoch += 1
+        logger.info(f"🔄 State change: {self.state} → speaking (epoch={self._speak_epoch})")
         self.state = "speaking"
+        
+        # New: Reset latch for new turn
+        self._barge_in_latched = False
 
-        # Open persistent TTS connection (async!)
-        async with self.tts.client.speak.v1.connect(
-            model="aura-2-thalia-en",
-            encoding="linear16",
-            sample_rate=16000,
-        ) as tts_connection:
-            # Register async audio handler
-            audio_chunk_count = 0
+        async def tts_runner():
+            # Open persistent TTS connection (async!)
+            async with self.tts.client.speak.v1.connect(
+                model="aura-2-thalia-en",
+                encoding="linear16",
+                sample_rate=16000,
+            ) as tts_connection:
+                # Register async audio handler
+                audio_chunk_count = 0
+                dropped_chunk_count = 0
 
-            async def on_tts_audio(message):
-                nonlocal audio_chunk_count
+                # Capture current epoch - audio from this TTS session is only valid for this epoch
+                current_epoch = self._speak_epoch
 
-                if isinstance(message, bytes):
-                    audio_chunk_count += 1
-                    # Log first chunk only
-                    if audio_chunk_count == 1:
-                        logger.info(f"🔊 TTS audio received: {len(message)} bytes (first chunk)")
-                    # Send PCM audio to client
-                    await self.send_audio(message)
-                else:
-                    # Non-audio message (metadata, warnings, etc.)
-                    logger.debug(f"TTS message: {type(message).__name__}")
+                async def on_tts_audio(message):
+                    nonlocal audio_chunk_count, dropped_chunk_count
 
-            async def on_tts_error(error):
-                logger.error(f"❌ TTS error: {error}")
+                    if isinstance(message, bytes):
+                        audio_chunk_count += 1
 
-            async def on_tts_close(close_msg):
-                logger.warning(f"⚠️  TTS connection closed: {close_msg}")
+                        # Check if this audio is still valid (not interrupted)
+                        if current_epoch != self._speak_epoch:
+                            dropped_chunk_count += 1
+                            if dropped_chunk_count == 1:
+                                logger.info(f"🗑️  Dropping stale audio (epoch {current_epoch} != {self._speak_epoch})")
+                            return  # Drop stale audio on the floor
 
-            tts_connection.on(EventType.MESSAGE, on_tts_audio)
-            tts_connection.on(EventType.ERROR, on_tts_error)
-            tts_connection.on(EventType.CLOSE, on_tts_close)
+                        # Log first chunk only
+                        if audio_chunk_count == 1:
+                            logger.info(f"🔊 TTS audio received: {len(message)} bytes (first chunk)")
+                        # Send PCM audio to client
+                        await self.send_audio(message)
+                    else:
+                        # Non-audio message (metadata, warnings, etc.)
+                        logger.debug(f"TTS message: {type(message).__name__}")
 
-            # Start TTS listening task (async, not thread!)
-            listen_task = asyncio.create_task(tts_connection.start_listening())
+                async def on_tts_error(error):
+                    logger.error(f"❌ TTS error: {error}")
 
-            # Stream LLM and synthesize sentence-by-sentence
-            from deepgram.speak.v1.types import SpeakV1Flush, SpeakV1Text
-            import re
+                async def on_tts_close(close_msg):
+                    logger.warning(f"⚠️  TTS connection closed: {close_msg}")
 
-            chunk_count = 0
-            sentence_count = 0
-            sentence_buffer = ""
+                tts_connection.on(EventType.MESSAGE, on_tts_audio)
+                tts_connection.on(EventType.ERROR, on_tts_error)
+                tts_connection.on(EventType.CLOSE, on_tts_close)
 
-            async def send_to_tts(text: str):
-                """Send text to TTS and flush."""
-                nonlocal sentence_count
-                if not text.strip():
-                    return
+                # Start TTS listening task (async, not thread!)
+                listen_task = asyncio.create_task(tts_connection.start_listening())
 
-                sentence_count += 1
-                # Strip markdown formatting (TTS doesn't handle it well)
-                clean_text = re.sub(r'\*\*(.+?)\*\*', r'\1', text)  # **bold** → bold
-                clean_text = re.sub(r'\*(.+?)\*', r'\1', clean_text)  # *italic* → italic
-                clean_text = clean_text.strip()
+                try:
+                    # Stream LLM and synthesize sentence-by-sentence
+                    from deepgram.speak.v1.types import SpeakV1Flush, SpeakV1Text
+                    import re
 
-                logger.info(f"→ TTS sentence {sentence_count}: '{clean_text[:80]}{'...' if len(clean_text) > 80 else ''}'")
+                    chunk_count = 0
+                    sentence_count = 0
+                    sentence_buffer = ""
 
-                await tts_connection.send_text(SpeakV1Text(text=clean_text))
-                await tts_connection.send_flush(SpeakV1Flush(type="Flush"))
+                    async def send_to_tts(text: str):
+                        """Send text to TTS and flush."""
+                        nonlocal sentence_count
+                        if not text.strip():
+                            return
 
-            async for llm_chunk in self.llm.stream_complete(
-                input=user_input,
-                conversation_id=self.conversation_id,
-            ):
-                chunk_count += 1
-                sentence_buffer += llm_chunk
+                        sentence_count += 1
+                        # Strip markdown formatting (TTS doesn't handle it well)
+                        clean_text = re.sub(r'\*\*(.+?)\*\*', r'\1', text)  # **bold** → bold
+                        clean_text = re.sub(r'\*(.+?)\*', r'\1', clean_text)  # *italic* → italic
+                        clean_text = clean_text.strip()
 
-                # Log first few chunks for debugging
-                if chunk_count <= 5:
-                    logger.debug(f"LLM chunk {chunk_count}: '{llm_chunk}'")
+                        logger.info(f"→ TTS sentence {sentence_count}: '{clean_text[:80]}{'...' if len(clean_text) > 80 else ''}'")
 
-                # Check for sentence boundaries (. ! ? or newline)
-                # Split on these and send complete sentences immediately
-                while True:
-                    # Find the first sentence ending
-                    match = re.search(r'[.!?]\s+|\n\n+', sentence_buffer)
-                    if not match:
-                        break  # No complete sentence yet
+                        await tts_connection.send_text(SpeakV1Text(text=clean_text))
+                        await tts_connection.send_flush(SpeakV1Flush(type="Flush"))
 
-                    # Extract sentence and send to TTS
-                    end_pos = match.end()
-                    sentence = sentence_buffer[:end_pos]
-                    sentence_buffer = sentence_buffer[end_pos:]
+                    async for llm_chunk in self.llm.stream_complete(
+                        input=user_input,
+                        conversation_id=self.conversation_id,
+                    ):
+                        chunk_count += 1
+                        sentence_buffer += llm_chunk
 
-                    await send_to_tts(sentence)
+                        # Log first few chunks for debugging
+                        if chunk_count <= 5:
+                            logger.debug(f"LLM chunk {chunk_count}: '{llm_chunk}'")
 
-            # Send any remaining text in buffer (if last response didn't end with punctuation)
-            if sentence_buffer.strip():
-                await send_to_tts(sentence_buffer)
+                        # Check for sentence boundaries (. ! ? or newline)
+                        # Split on these and send complete sentences immediately
+                        while True:
+                            # Find the first sentence ending
+                            match = re.search(r'[.!?]\s+|\n\n+', sentence_buffer)
+                            if not match:
+                                break  # No complete sentence yet
 
-            logger.info(f"← LLM: {chunk_count} chunks → {sentence_count} sentences")
+                            # Extract sentence and send to TTS
+                            end_pos = match.end()
+                            sentence = sentence_buffer[:end_pos]
+                            sentence_buffer = sentence_buffer[end_pos:]
 
-            # Send Close message (signals end of input to TTS)
-            # TTS will finish generating audio for all sent text, then close connection
-            from deepgram.speak.v1.types import SpeakV1Close
+                            await send_to_tts(sentence)
 
-            await tts_connection.send_close(SpeakV1Close(type="Close"))
-            logger.debug("Sent Close message to TTS, waiting for audio generation to complete...")
+                    # Send any remaining text in buffer (if last response didn't end with punctuation)
+                    if sentence_buffer.strip():
+                        await send_to_tts(sentence_buffer)
 
-            # Await listen_task - it will complete when TTS finishes processing all audio
-            # This ensures we don't exit the context manager while TTS is still generating
-            try:
-                await listen_task
-                logger.debug("TTS listen task completed successfully")
-            except Exception as e:
-                # Catch SDK validation errors (Pydantic failures from malformed API responses)
-                logger.error(f"TTS listen task failed: {type(e).__name__}: {e}")
-                # Don't re-raise - TTS already sent audio, just log the cleanup error
+                    logger.info(f"← LLM: {chunk_count} chunks → {sentence_count} sentences")
 
-            logger.info(f"🔊 TTS audio: {audio_chunk_count} total chunks received")
+                    # Send Close message (signals end of input to TTS)
+                    # TTS will finish generating audio for all sent text, then close connection
+                    from deepgram.speak.v1.types import SpeakV1Close
 
-            # Context manager will handle connection cleanup on exit
+                    await tts_connection.send_close(SpeakV1Close(type="Close"))
+                    logger.debug("Sent Close message to TTS, waiting for audio generation to complete...")
+
+                    # Await listen_task - it will complete when TTS finishes processing all audio
+                    await listen_task
+                    logger.debug("TTS listen task completed successfully")
+
+                except asyncio.CancelledError:
+                    logger.warning("TTS runner cancelled")
+                    # Make sure listen_task is cancelled on interrupt
+                    if not listen_task.done():
+                        listen_task.cancel()
+                    raise
+
+                except Exception as e:
+                    # Catch SDK validation errors or other exceptions
+                    logger.error(f"TTS runner failed: {type(e).__name__}: {e}")
+                    # Don't re-raise - TTS already sent audio, just log the cleanup error
+                    if not listen_task.done():
+                        listen_task.cancel()
+                
+                logger.info(f"🔊 TTS audio: {audio_chunk_count} total chunks received")
+
+        # Assign task so it can be cancelled
+        self._tts_task = asyncio.create_task(tts_runner())
+        try:
+            await self._tts_task
+        finally:
+            self._tts_task = None
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """

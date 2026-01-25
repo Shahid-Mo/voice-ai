@@ -138,6 +138,21 @@ class TwilioVoiceSession(VoiceSession):
         self.stream_sid = start_data.get("start", {}).get("streamSid")
         logger.info(f"📞 Stream SID: {self.stream_sid}")
 
+    async def clear_audio_buffer(self) -> None:
+        """
+        Clear Twilio's audio playback buffer.
+
+        Sends a "clear" event to immediately stop playing queued audio.
+        Used for interrupt handling - stops old audio when user speaks.
+        """
+        clear_message = {
+            "event": "clear",
+            "streamSid": self.stream_sid,
+        }
+
+        await self.websocket.send_text(json.dumps(clear_message))
+        logger.info("🧹 Cleared Twilio audio buffer (interrupt)")
+
     async def send_audio(self, pcm_data: bytes) -> None:
         """
         Send audio to Twilio.
