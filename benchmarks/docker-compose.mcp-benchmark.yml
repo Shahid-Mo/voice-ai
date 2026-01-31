@@ -53,7 +53,7 @@ services:
       - DATABASE_URI=postgresql://lotus:lotus@postgres:5432/blacklotus
     command:
       - "--transport=sse"
-      - "--port=8000"
+      - "--sse-port=8000"
       - "--access-mode=unrestricted"
     depends_on:
       postgres:

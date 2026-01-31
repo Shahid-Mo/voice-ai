@@ -25,4 +25,4 @@ RUN uv pip install --system -e .
 EXPOSE 8000
 
 # Start the native API
-CMD ["uv", "run", "--no-sync", "scripts/start_api.py"]
+CMD ["python", "-m", "uvicorn", "reservation.api:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
