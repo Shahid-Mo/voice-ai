@@ -1,5 +1,5 @@
 """SQLModel definitions for Black Lotus reservation system."""
-from datetime import datetime, date, timezone
+from datetime import datetime, date
 from typing import Optional
 from sqlmodel import SQLModel, Field, create_engine
 from enum import Enum
@@ -31,7 +31,7 @@ class ShadowInventory(SQLModel, table=True):
     date: date
     is_available: bool = True
     rate: float
-    cached_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    cached_at: datetime = Field(default_factory=datetime.utcnow)
     
     class Config:
         json_schema_extra = {
@@ -69,7 +69,7 @@ class ReservationTicket(SQLModel, table=True):
     # Call metadata
     source: str = "voice_ai"
     call_transcript: Optional[str] = None
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=datetime.utcnow)
     
     # Staff workflow
     status: TicketStatus = TicketStatus.PENDING

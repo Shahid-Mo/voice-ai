@@ -1,6 +1,6 @@
 """ERP Sync Service - protects the legacy ERP from voice AI load."""
 import time
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta
 from typing import Optional
 
 from sqlalchemy import select, delete
@@ -57,7 +57,7 @@ class ERPSyncService:
             # Step 3: Record sync status
             duration = time.time() - start_time
             status = SyncStatus(
-                last_sync_at=datetime.now(timezone.utc),
+                last_sync_at=datetime.utcnow(),
                 records_synced=len(erp_data),
                 sync_duration_seconds=round(duration, 2),
                 status="success"
@@ -71,7 +71,7 @@ class ERPSyncService:
             # Graceful degradation: continue with stale cache
             duration = time.time() - start_time
             status = SyncStatus(
-                last_sync_at=datetime.now(timezone.utc),
+                last_sync_at=datetime.utcnow(),
                 records_synced=0,
                 sync_duration_seconds=round(duration, 2),
                 status="failed",
@@ -86,7 +86,7 @@ class ERPSyncService:
     async def get_last_sync(self, session: AsyncSession) -> Optional[SyncStatus]:
         """Get the most recent sync status."""
         result = await session.execute(
-            select(SyncStatus).order_by(SyncStatus.last_sync_at.desc())
+            select(SyncStatus).order_by(SyncStatus.last_sync_at.desc()).limit(1)
         )
         return result.scalar_one_or_none()
     
@@ -94,5 +94,5 @@ class ERPSyncService:
         """Check if cache is fresh enough to use."""
         if not sync_status:
             return False
-        age = datetime.now(timezone.utc) - sync_status.last_sync_at
+        age = datetime.utcnow() - sync_status.last_sync_at
         return age < timedelta(minutes=max_age_minutes)

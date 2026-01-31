@@ -15,8 +15,7 @@ dist/
 *.egg-info/
 
 # my personal learning docs
-shahid/
-docs/
+archive/
 
 # Benchmark results
 benchmarks/llm_ttft/results/*.csv

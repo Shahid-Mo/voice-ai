@@ -2,100 +2,66 @@
 
 ## Project Overview
 
-A modular Voice AI platform with **pluggable providers** for every component. The goal is to build a comprehensive system that can swap STT, LLM, TTS, and VectorDB providers without code changes.
+A modular Voice AI platform with **pluggable providers** for STT, LLM, TTS, and VectorDB components. Built with 100% async architecture for real-time voice conversations.
 
-**Mission:** Become an authority on all things Voice AI by testing, comparing, and understanding every component in the ecosystem.
-
-## Tech Stack
-
-- **Language:** Python 3.12+
-- **Framework:** FastAPI + uvicorn
-- **Config:** pydantic-settings (auto-loads `.env`)
-- **Primary Providers:** Deepgram (STT/TTS), OpenAI (LLM)
-- **Package Manager:** uv
-
-## Architecture Philosophy: 100% Async
-
-**WE ARE STAUNCHLY IN THE ASYNC CAMP. NO THREADING. EVER.**
-
-- All code uses `async`/`await` - no `threading`, no `ThreadPoolExecutor`, no sync hacks
-- All providers use native async clients: `AsyncDeepgramClient`, async OpenAI SDK
-- Event handlers are `async def` functions
-- Audio streaming is fully async - no blocking operations
-- Proven pattern: see `tests/test_async_deepgram.py` for reference implementation
-
-**Why Async-Only:**
-- Non-blocking I/O for real-time audio streaming
-- Better resource utilization (thousands of concurrent connections)
-- Simpler reasoning (no thread synchronization, no locks)
-- Native FastAPI/uvicorn compatibility
-- Future-proof for high-scale deployments
-
-## Project Structure
-
-```
-src/voice_ai/
-├── main.py              # FastAPI entry point
-├── config.py            # Settings (pydantic-settings)
-├── providers/           # Pluggable provider system
-│   ├── stt/             # Speech-to-Text
-│   │   ├── base.py      # STTProvider interface
-│   │   └── deepgram.py  # Deepgram Flux implementation
-│   ├── llm/             # Language Models
-│   │   └── base.py      # LLMProvider interface
-│   └── tts/             # Text-to-Speech
-│       ├── base.py      # TTSProvider interface
-│       └── deepgram.py  # Deepgram Aura implementation
-├── services/            # Business logic & orchestration
-├── api/routes/          # HTTP endpoints (thin layer)
-│   └── health.py        # Health check endpoints
-└── models/              # Pydantic schemas
-```
-
-## Architecture: Routes vs Services vs Providers
-
-```
-Routes (api/) → Services (services/) → Providers (providers/)
-   │                  │                      │
-   └─ HTTP only       └─ Business logic      └─ External APIs
-```
-
-- **Routes:** Handle HTTP requests/responses only. No business logic.
-- **Services:** Orchestrate flows (STT → LLM → TTS). Business rules.
-- **Providers:** Talk to external APIs. Implement interfaces. Swappable.
-
-## Commands
+## Quick Start
 
 ```bash
-# Run the server
-uv run uvicorn voice_ai.main:app --reload
+# Install dependencies
+uv sync
 
-# Or directly
-uv run python -m voice_ai.main
+# Run server
+uv run uvicorn voice_ai.main:app --reload
 
 # Run tests
 uv run pytest
 
-# Type checking
+# Type checking & linting
 uv run mypy src/
-
-# Linting
 uv run ruff check src/
-uv run ruff format src/
 ```
 
-## Environment Variables
+## Architecture
 
-Copy `.env.example` to `.env` and fill in API keys:
+### 100% Async - No Threading
+
+- All code uses `async`/`await` - no `threading`, no `ThreadPoolExecutor`
+- Native async clients: `AsyncDeepgramClient`, async OpenAI SDK
+- Proven pattern: see `tests/test_async_deepgram.py`
+
+### Layer Structure
+
+```
+Routes (api/routes/) → Services (services/) → Providers (providers/)
+   │                       │                        │
+   └─ HTTP only            └─ Business logic        └─ External APIs
+```
+
+### Project Structure
+
+```
+src/voice_ai/
+├── main.py              # FastAPI entry point
+├── config.py            # Pydantic settings
+├── audio_utils.py       # μ-law/PCM conversion
+├── api/routes/          # HTTP/WebSocket endpoints
+│   ├── health.py        # Health checks
+│   └── voice_ws.py      # Twilio WebSocket
+├── services/
+│   └── voice_session.py # STT→LLM→TTS orchestrator
+└── providers/
+    ├── stt/deepgram.py  # Deepgram Flux STT
+    ├── llm/openai.py    # OpenAI Responses API
+    └── tts/deepgram.py  # Deepgram Aura TTS
+```
+
+## Environment Setup
+
+Copy `.env.example` to `.env`:
 
 ```bash
-STT_PROVIDER=deepgram
-LLM_PROVIDER=openai
-TTS_PROVIDER=deepgram
-
-DEEPGRAM_API_KEY=your_key_here
-OPENAI_API_KEY=your_key_here
-
+DEEPGRAM_API_KEY=your_key
+OPENAI_API_KEY=your_key
 HOST=0.0.0.0
 PORT=8000
 DEBUG=true
@@ -104,65 +70,40 @@ DEBUG=true
 ## Provider Interfaces
 
 ### STT (Speech-to-Text)
-- `transcribe(audio_data: bytes) -> STTEvent` - Batch transcription
-- `connect(on_event, sample_rate, encoding)` - Open streaming connection
-- `send_audio(audio_chunk: bytes)` - Send audio to stream
-- `close()` - Close connection
-
-**Deepgram Flux features:** EndOfTurn, EagerEndOfTurn, TurnResumed events for intelligent turn detection.
+- `transcribe_stream(audio, callback)` - Streaming with turn detection
+- Events: `EndOfTurn`, `EagerEndOfTurn`, `TurnResumed`
 
 ### LLM
-- `complete(messages, tools) -> LLMResponse` - Generate completion
-- `stream_complete(messages) -> AsyncIterator[str]` - Stream completion
+- `stream_complete(messages, conversation_id)` - Streaming responses
+- Uses OpenAI Responses API for automatic conversation state
 
 ### TTS (Text-to-Speech)
-- `synthesize(text, voice) -> TTSResult` - Convert text to audio
-- `synthesize_stream(text, voice) -> AsyncIterator[bytes]` - Stream audio
-
-## Implementation Status
-
-### Done
-- [x] Project structure with `src/` layout
-- [x] Config management (pydantic-settings)
-- [x] FastAPI skeleton with health endpoints
-- [x] STT interface + Deepgram Flux implementation
-- [x] LLM interface (base only)
-- [x] TTS interface + Deepgram Aura implementation
-
-### Next
-- [x] OpenAI LLM provider implementation (Responses API with streaming)
-- [x] Voice orchestrator service (STT → LLM → TTS pipeline)
-- [x] Twilio Media Streams integration (phone calls via WebSocket)
-- [x] Audio format conversion (μ-law ↔ PCM, sample rate conversion)
-- [x] Fully async architecture (AsyncDeepgramClient proven)
-- [ ] Debug TTS audio playback on Twilio
-- [ ] VectorDB interface + PgVector implementation
-- [ ] RAG service
-- [ ] Benchmark scripts for provider comparison
+- `synthesize_stream(text)` - Streaming audio synthesis
+- Sentence-by-sentence for low latency
 
 ## Key Design Decisions
 
-1. **100% Async, No Threading** - All code uses `async`/`await`. No `threading` module, no `ThreadPoolExecutor`, no sync hacks. See `tests/test_async_deepgram.py` for proven async patterns.
+1. **100% Async** - Proven in `tests/test_async_deepgram.py`
+2. **Persistent STT** - Connection stays open for entire call
+3. **Sentence Streaming** - Buffer LLM until `.!?`, then TTS immediately
+4. **PCM 16kHz Internal** - All endpoints convert to/from this format
 
-2. **Pluggable provider interfaces** - Every provider implements a base interface. Swap Deepgram for AssemblyAI by changing one config value.
+## Documentation
 
-3. **Persistent WebSocket connections** - STT connection stays open for entire call (continuous streaming, not buffering). Audio chunks sent in real-time.
+| Doc | Purpose |
+|-----|---------|
+| `VOICE-AI.md` | High-level vision, provider comparison |
+| `docs/ARCHITECTURE.md` | System design details |
+| `docs/CODE_GUIDE.md` | Key files explained |
+| `docs/JOURNEY.md` | Lessons learned, pitfalls |
 
-4. **Sentence-by-sentence TTS streaming** - Buffer LLM tokens until sentence boundary (. ! ?), immediately synthesize, start playing while LLM still generating (low latency).
+## Deployment
 
-5. **Format-agnostic pipeline** - `VoiceSession` works with PCM 16kHz internally. Endpoints handle conversion (μ-law for Twilio, future: WebM for browsers).
+Development:
+```bash
+uv run uvicorn voice_ai.main:app --reload
+```
 
-6. **Config from environment** - `pydantic-settings` auto-loads `.env`, validates types, provides typed access via `settings.deepgram_api_key`.
-
-## Use Cases to Implement
-
-1. **Simple Q&A** - Answer questions from knowledge base (STT → LLM → RAG → TTS)
-2. **Phone Survey** - Ask questions, record answers to DB
-3. **Booking Agent** - Book appointments, check availability
-
-## Reference Docs
-
-- `VOICE-AI.md` - High-level vision and provider comparison
-- `PLAN.md` - Detailed implementation phases
-- `shahid/skeleton/` - Architecture explanations
-- `shahid/data/` - Data flow and multi-tenant RAG design
+Production (see `infra/`):
+- Docker: `docker-compose up`
+- AWS: EC2/Fargate configs in `infra/aws/`

@@ -1,5 +1,5 @@
 """FastAPI backend for Black Lotus reservation system."""
-from datetime import date
+from datetime import date, datetime
 from typing import List, Optional
 
 from fastapi import FastAPI, Depends, HTTPException
@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .db import init_db, close_db, get_session
+from .db import init_db, close_db, get_session, async_session
 from .models import (
     ReservationTicket, TicketStatus, SyncStatus,
     AvailabilityQuery, TicketCreate
@@ -47,10 +47,10 @@ async def startup():
     erp_client = MockERPClient(failure_rate=0.1)  # 10% chance of failure for demo
     sync_service = ERPSyncService(erp_client)
     
-    # Do initial sync
-    async for session in get_session():
+    # Do initial sync - properly manage session lifecycle
+    session = async_session()
+    async with session:
         await sync_service.sync_inventory(session, days_ahead=30)
-        break
 
 
 @app.on_event("shutdown")
@@ -181,7 +181,7 @@ async def approve_ticket(
         raise HTTPException(status_code=404, detail="Ticket not found")
     
     ticket.status = TicketStatus.APPROVED
-    ticket.reviewed_at = datetime.now(timezone.utc)
+    ticket.reviewed_at = datetime.utcnow()
     ticket.reviewed_by = staff_name
     
     await session.commit()
@@ -212,7 +212,7 @@ async def reject_ticket(
         raise HTTPException(status_code=404, detail="Ticket not found")
     
     ticket.status = TicketStatus.REJECTED
-    ticket.reviewed_at = datetime.now(timezone.utc)
+    ticket.reviewed_at = datetime.utcnow()
     ticket.reviewed_by = staff_name
     ticket.staff_notes = reason
     

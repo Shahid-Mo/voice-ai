@@ -138,7 +138,7 @@ async def create_reservation_ticket(
     """
     # Generate ticket ID
     result = await session.execute(
-        select(ReservationTicket).order_by(ReservationTicket.id.desc())
+        select(ReservationTicket).order_by(ReservationTicket.id.desc()).limit(1)
     )
     last_ticket = result.scalar_one_or_none()
     next_num = 1 if not last_ticket else last_ticket.id + 1

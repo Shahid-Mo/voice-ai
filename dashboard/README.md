@@ -1,42 +1,105 @@
-# sv
+# Black Lotus Dashboard
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+Staff dashboard for managing voice AI reservation requests.
 
-## Creating a project
+## Quick Start
 
-If you're seeing this, you've probably already done this step. Congrats!
+You need **two terminals** - one for the API, one for the dashboard.
 
-```sh
-# create a new project
-npx sv create my-app
+### Terminal 1: Start the API (Port 8000)
+
+```bash
+# From project root
+uv run scripts/start_api.py
 ```
 
-To recreate this project with the same configuration:
-
-```sh
-# recreate this project
-npx sv create --template minimal --types jsdoc --no-install .
+You should see:
+```
+🚀 Starting Black Lotus Reservation API
+API will be available at: http://localhost:8000
 ```
 
-## Developing
+### Terminal 2: Start the Dashboard (Port 5173)
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```sh
+```bash
+# From project root
+cd dashboard
 npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
 ```
 
-## Building
-
-To create a production version of your app:
-
-```sh
-npm run build
+You should see:
+```
+VITE v7.3.1  ready in 638 ms
+➜  Local:   http://localhost:5173/
 ```
 
-You can preview the production build with `npm run preview`.
+### Open Dashboard
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+Go to: **http://localhost:5173**
+
+---
+
+## Architecture
+
+```
+┌─────────────────┐      HTTP/REST       ┌─────────────────┐
+│   Dashboard     │ ◄──────────────────► │  Reservation    │
+│  (SvelteKit)    │   Port 8000          │   API (FastAPI) │
+│   Port 5173     │                      │   Port 8000     │
+└─────────────────┘                      └────────┬────────┘
+                                                  │
+                                                  ▼
+                                         ┌─────────────────┐
+                                         │   PostgreSQL    │
+                                         │    Database     │
+                                         └─────────────────┘
+```
+
+## Dashboard Features
+
+- **Auto-refresh**: Updates every 5 seconds
+- **Filter tickets**: pending, approved, rejected, all
+- **Approve/Reject**: Staff actions on pending tickets
+- **Sync status**: Shows if ERP data is fresh/stale
+- **Manual sync**: Trigger ERP sync from UI
+
+## API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/health` | Health check |
+| GET | `/tickets` | List all tickets |
+| GET | `/tickets/{id}` | Get specific ticket |
+| POST | `/tickets` | Create ticket (voice AI) |
+| POST | `/tickets/{id}/approve` | Approve ticket |
+| POST | `/tickets/{id}/reject` | Reject ticket |
+| GET | `/sync/status` | Check sync status |
+| POST | `/sync` | Trigger ERP sync |
+
+## Troubleshooting
+
+### "Failed to fetch tickets" in browser console
+
+**Problem**: API is not running on port 8000
+
+**Fix**:
+```bash
+# Check if API is running
+curl http://localhost:8000/health
+
+# If no response, start it:
+uv run scripts/start_api.py
+```
+
+### Dashboard shows "No pending tickets" but should have data
+
+**Problem**: Database might be empty
+
+**Fix**: Run the test script to seed tickets:
+```bash
+uv run scripts/test_agent_tools.py
+```
+
+### CORS errors in browser
+
+The API already has CORS configured for `*`. If you see CORS errors, check that you're accessing the dashboard via `http://localhost:5173` (not `127.0.0.1` or other variations).
