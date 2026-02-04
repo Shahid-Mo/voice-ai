@@ -25,7 +25,7 @@ class OpenAILLM:
     def __init__(
         self,
         api_key: str | None = None,
-        model: str = "gpt-5-mini",
+        model: str = "gpt-4.1-nano",
         temperature: float = 1.0,
         max_tokens: int | None = None,
     ):

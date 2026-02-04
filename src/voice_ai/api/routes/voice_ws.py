@@ -6,6 +6,7 @@ Handles bidirectional audio streaming for:
 - Browser WebSocket (future)
 """
 
+import asyncio
 import base64
 import json
 import logging
@@ -137,6 +138,50 @@ class TwilioVoiceSession(VoiceSession):
         # Extract stream metadata
         self.stream_sid = start_data.get("start", {}).get("streamSid")
         logger.info(f"📞 Stream SID: {self.stream_sid}")
+
+        # Send welcome greeting
+        await self._send_greeting()
+
+    async def _send_greeting(self) -> None:
+        """Send welcome greeting via TTS."""
+        from deepgram.core.events import EventType
+        from deepgram.speak.v1.types import SpeakV1Close, SpeakV1Flush, SpeakV1Text
+
+        greeting = "Welcome to Hotel Continental. My name is Alex, i am your virtual . How may I help you today!?"
+        logger.info(f"🎙️  Sending greeting: '{greeting}'")
+
+        # Open TTS connection
+        async with self.tts.client.speak.v1.connect(
+            model="aura-2-thalia-en",
+            encoding="linear16",
+            sample_rate=16000,
+        ) as tts_connection:
+            # Register audio handler
+            async def on_tts_audio(message):
+                if isinstance(message, bytes):
+                    await self.send_audio(message)
+
+            tts_connection.on(EventType.MESSAGE, on_tts_audio)
+
+            # Start listening task
+            listen_task = asyncio.create_task(tts_connection.start_listening())
+
+            try:
+                # Send greeting text
+                await tts_connection.send_text(SpeakV1Text(text=greeting))
+                await tts_connection.send_flush(SpeakV1Flush(type="Flush"))
+
+                # Close connection
+                await tts_connection.send_close(SpeakV1Close(type="Close"))
+
+                # Wait for audio to finish
+                await listen_task
+                logger.info("✓ Greeting sent")
+
+            except Exception as e:
+                logger.error(f"Error sending greeting: {e}", exc_info=True)
+                if not listen_task.done():
+                    listen_task.cancel()
 
     async def clear_audio_buffer(self) -> None:
         """
