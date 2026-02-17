@@ -1,12 +1,15 @@
-# Python runtime files
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyo
 
-# Virtual Environment (Critical: uv stores the environment here)
+# Virtual environment
 .venv/
+venv/
+env/
 
-# Environment variables (Safety: never commit secrets)
+# Environment variables
 .env
 
 # Build and distribution
@@ -14,9 +17,26 @@ build/
 dist/
 *.egg-info/
 
-# my personal learning docs
+# Internal / work-in-progress
 archive/
+benchmarks/
+dashboard/
+data/
+docs/
+scripts/
+infra/
+CLAUDE.md
+VOICE-AI.md
 
-# Benchmark results
-benchmarks/llm_ttft/results/*.csv
-benchmarks/llm_ttft/results/*.json
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+logs/
